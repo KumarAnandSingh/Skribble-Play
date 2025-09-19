@@ -6,10 +6,10 @@
 - Drafted top-level README capturing vision, target architecture, and immediate goals.
 
 ## Immediate Next Actions
-1. Translate AGENTS doc into actionable epics and tickets (`docs/prd/` backlog).
-2. Scaffold `apps/web` (Next.js), `services/game-server` (Node/TS), and `packages/drawing-engine`.
-3. Establish shared tooling: ESLint/Prettier, TypeScript configs, pnpm workspace.
-4. Configure GitHub Actions CI stub to align with project guidelines.
+1. Wire the web client to the game server health endpoint and add local env configs.
+2. Stand up initial automated tests (Vitest unit for drawing engine, integration smoke for game server).
+3. Decide on SFU vendor (LiveKit vs mediasoup) and outline infra requirements in `services/media-sfu`.
+4. Run `npm install` locally to generate the root lockfile and validate workspace commands.
 
 ## Notes
 - Keep commits scoped by workspace (web, server, packages) as structure materializes.
@@ -21,8 +21,10 @@
 - Set up service skeletons for `game-server` and `worker` with Fastify and BullMQ entrypoints.
 - Added shared packages (`drawing-engine`, `ui-kit`, `shared-config`) with initial TypeScript exports.
 - Captured documentation placeholders under `docs/`, `runbook/`, and `analytics-spec/`.
+- Authored `docs/prd/PRD.md` and `docs/AGENTS.md` to ground milestones and agent ownership.
+- Added ESLint configurations across services/packages and seeded GitHub Actions CI workflow (`.github/workflows/ci.yml`).
 
 ## Open Questions
 - Choose exact SFU stack (LiveKit vs mediasoup) and update `services/media-sfu` accordingly.
-- Define CI tooling (likely GitHub Actions) once repository is published.
-- Validate dependency versions once npm install is available.
+- Confirm lint/test command coverage once dependencies are installed (watch for Next.js version compatibility).
+- Do we need shared proto/contracts between client and server for stroke events vs REST + socket payloads?
