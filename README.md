@@ -36,4 +36,4 @@ analytics-spec/
 - Configure continuous integration, linting, and testing harnesses.
 - Implement first playable room with anonymous join and timed guessing rounds.
 
-Refer to `memory/PROGRESS.md` for day-to-day context and open threads, and see `docs/AGENTS.md` for the summarized agent roster.
+Refer to `memory/PROGRESS.md` for day-to-day context and open threads, see `docs/AGENTS.md` for the summarized agent roster, and consult the full playbook at `AGENTS.md` when coordinating cross-team work.
