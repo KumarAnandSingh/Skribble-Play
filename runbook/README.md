@@ -1,7 +1,7 @@
 # Runbook Index
 
-- `oncall.md` — TBD
-- `incidents.md` — TBD
-- `moderation.md` — TBD
+- `oncall.md` — escalation ladder, dashboards, alert thresholds (TBD).
+- `incidents.md` — severity matrix, comms templates (TBD).
+- `moderation.md` — abuse workflow, evidence capture, response SLAs (TBD).
 
-Populate these based on the agent responsibilities outlined in the AGENTS doc as services come online.
+Populate these as services come online and moderation tooling stabilizes.

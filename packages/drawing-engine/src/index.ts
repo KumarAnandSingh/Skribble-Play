@@ -2,45 +2,68 @@ export interface StrokePoint {
   x: number;
   y: number;
   pressure?: number;
-  t: number;
+  timestamp: number;
 }
 
 export interface Stroke {
   id: string;
   color: string;
-  width: number;
+  brushSize: number;
   points: StrokePoint[];
 }
 
+export type StrokeEventType = "stroke:start" | "stroke:move" | "stroke:end" | "stroke:undo";
+
 export interface StrokeEvent {
-  type: "stroke:start" | "stroke:move" | "stroke:end" | "stroke:undo";
+  type: StrokeEventType;
   payload: Stroke;
 }
 
-export function interpolateStroke(stroke: Stroke, samples = 16): StrokePoint[] {
-  if (stroke.points.length <= 1) return stroke.points;
-  const interpolated: StrokePoint[] = [];
+export function interpolateStroke(stroke: Stroke, samples = 12): StrokePoint[] {
+  if (stroke.points.length < 2) {
+    return stroke.points;
+  }
 
-  for (let i = 0; i < stroke.points.length - 1; i++) {
-    const current = stroke.points[i];
-    const next = stroke.points[i + 1];
+  const result: StrokePoint[] = [];
 
-    interpolated.push(current);
+  for (let index = 0; index < stroke.points.length - 1; index += 1) {
+    const current = stroke.points[index];
+    const next = stroke.points[index + 1];
+    result.push(current);
 
-    for (let s = 1; s < samples; s++) {
-      const ratio = s / samples;
-      interpolated.push({
+    for (let step = 1; step < samples; step += 1) {
+      const ratio = step / samples;
+      result.push({
         x: current.x + (next.x - current.x) * ratio,
         y: current.y + (next.y - current.y) * ratio,
         pressure:
           current.pressure != null && next.pressure != null
             ? current.pressure + (next.pressure - current.pressure) * ratio
             : undefined,
-        t: current.t + (next.t - current.t) * ratio,
+        timestamp: current.timestamp + (next.timestamp - current.timestamp) * ratio
       });
     }
   }
 
-  interpolated.push(stroke.points.at(-1)!);
-  return interpolated;
+  result.push(stroke.points.at(-1)!);
+  return result;
+}
+
+export function simplifyStroke(stroke: Stroke, tolerance = 0.002): Stroke {
+  if (stroke.points.length < 3) {
+    return stroke;
+  }
+
+  const simplified = stroke.points.filter((point, index, array) => {
+    if (index === 0 || index === array.length - 1) return true;
+    const prev = array[index - 1];
+    const next = array[index + 1];
+    const area = Math.abs(prev.x * (point.y - next.y) + point.x * (next.y - prev.y) + next.x * (prev.y - point.y));
+    return area > tolerance;
+  });
+
+  return {
+    ...stroke,
+    points: simplified
+  };
 }

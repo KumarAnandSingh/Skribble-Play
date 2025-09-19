@@ -1,31 +1,21 @@
 {
-  "name": "@skribble/ui-kit",
+  "name": "@skribble-play/ui-kit",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts",
-    "dev": "tsup src/index.ts --format esm --watch",
-    "lint": "eslint src --ext .ts,.tsx",
-    "test": "vitest",
-    "typecheck": "tsc --noEmit"
-  },
+  "main": "src/index.tsx",
+  "types": "src/index.tsx",
   "peerDependencies": {
-    "react": ">=18",
-    "react-dom": ">=18"
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "7.18.0",
-    "@typescript-eslint/parser": "7.18.0",
-    "@types/node": "20.14.10",
-    "@types/react": "18.3.4",
-    "@types/react-dom": "18.3.0",
-    "eslint": "9.8.0",
-    "eslint-plugin-react": "7.34.4",
-    "tsup": "7.2.0",
-    "typescript": "5.5.4",
-    "vitest": "1.6.0"
+    "typescript": "5.5.4"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "vitest run",
+    "typecheck": "tsc --project tsconfig.json --noEmit"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@skribble/control",
+  "name": "@skribble-play/control",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -18,9 +18,8 @@
     "@types/node": "20.14.10",
     "@types/react": "18.3.4",
     "@types/react-dom": "18.3.0",
-    "eslint": "9.8.0",
+    "eslint": "8.57.0",
     "eslint-config-next": "15.0.0",
-    "typescript": "5.5.4",
-    "prettier": "3.3.3"
+    "typescript": "5.5.4"
   }
 }

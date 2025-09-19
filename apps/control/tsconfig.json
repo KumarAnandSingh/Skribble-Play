@@ -1,11 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist",
     "jsx": "preserve",
-    "lib": ["dom", "dom.iterable", "es2020"]
+    "types": ["node"],
+    "baseUrl": "."
   },
-  "include": ["next-env.d.ts", "src"],
-  "exclude": ["node_modules"]
+  "include": ["next-env.d.ts", "src/**/*"]
 }

@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: skribble-play-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: skribble_play
+    ports:
+      - "55432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: skribble-play-redis
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: skribble-play-livekit
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      LIVEKIT_KEYS: "devkey: devsecret"
+      LIVEKIT_API_PORT: 7880
+      LIVEKIT_WEBRTC_PORT_RANGE_START: 7900
+      LIVEKIT_WEBRTC_PORT_RANGE_END: 7999
+      LIVEKIT_LOG_LEVEL: info
+    ports:
+      - "7880:7880"   # HTTP / WebSocket API
+      - "7900-7999:7900-7999/udp"
+    command: >
+      --dev
+      --bind 0.0.0.0:7880
+      --node-ip 127.0.0.1
+      --redis-host redis:6379
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

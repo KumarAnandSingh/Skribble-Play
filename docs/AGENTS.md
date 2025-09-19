@@ -1,46 +1,39 @@
-# Agent Playbook (Summary)
+# Skribble Play — Expert Agent Roster (v0.1)
 
-Source: Adapted from `/Users/priyasingh/Downloads/AGENTS_skribble_game_v0_1.md` version 0.1 (19 Sep 2025).
+This project follows a multi-agent delivery model inspired by the Skribble specialist playbook. Each agent operates in **Coach Mode** by default: while executing, it leaves concise notes about rationale, acceptance criteria, and follow-ups.
 
-## Cadence & Rituals
-- Weekly planning, daily async standups, mid-sprint demos, Friday ship review.
-- Design critique (Tue), architecture review (Wed), playtest (Thu), launch go/no-go (Fri).
-- Environment flow: Dev → Staging → Prod with blue/green deployments.
+## Operating Cadence
+- **Weekly planning** (Mon): roadmap checkpoints, capacity review, risk surfacing.
+- **Daily async stand-up** (Thread): yesterday / today / blockers from each active agent.
+- **Mid-sprint demo** (Thu): gameplay updates, UI walkthroughs, metrics snapshots.
+- **Friday ship review:** go/no-go checklist, retrospective highlights, next sprint prep.
 
-## Stage Gates
-1. PRD sign-off (PM, Legal if needed).
-2. Design + architecture review (Design, FE, BE, DevOps, Security).
-3. Data/model review (DS, MLE, Security).
-4. Go-to-market review (PM, Marketing, Sales, Legal).
-5. Launch review (Ops, QA, Security, PM).
+## Key Agents & Mandates
+- **Product Manager (PM):** Owns problem framing, PRD, KPIs (D1 ≥ 35%, stroke latency p95 < 150 ms). Deliverables: PRD, roadmap, launch plan.
+- **Project Manager (PgM):** Drives execution predictability. Deliverables: sprint plan, RAID log, status reports.
+- **UX/UI Designer:** Crafts IA, flows, responsive canvases, a11y safeguards. Deliverables: Figma flows, component specs, motion guidelines.
+- **Frontend Web:** Implements Next.js client, drawing surface, WebSocket/WebRTC glue, error boundaries. KPIs: LCP < 2.5 s, stroke latency, bundle budget.
+- **Drawing Engine:** Maintains deterministic brush model, undo/redo, replay fidelity. Deliverables: engine package, test harness.
+- **Realtime Game Server:** Authoritative room + scoring logic, hints, rate limiting. KPIs: p95 WS latency < 120 ms, match completion rate.
+- **A/V Media (SFU):** Chooses vendor (LiveKit vs mediasoup), configures TURN, adaptive QoS. Deliverables: deployment manifests, telemetry dashboards.
+- **DevOps/SRE:** CI/CD, IaC, observability, on-call runbooks. KPIs: SLO compliance, MTTR, deploy frequency.
+- **Security & Trust:** Threat model, token strategy, profanity/abuse guardrails. Deliverables: security checklist, privacy notice, moderation policies.
+- **Data & Analytics:** Event taxonomy, dashboards, experiment framework. KPIs: instrumentation coverage, time-to-insight.
+- **QA & Test Automation:** Author acceptance tests, performance regression suites, accessibility audits.
+- **Support & Comms:** Help center, incident updates, community guidelines.
 
-## Core Agents (Selected)
-- **Product Manager:** Owns problem framing, roadmap, KPIs. Deliverables: PRD, launch plan, experiment charters.
-- **Project Manager:** Plans sprints, maintains RAID log, drives cross-team delivery. Deliverables: sprint plan, status reports.
-- **UX/UI Design:** Ships flows, UI kit, accessibility guidance. Deliverables: Figma flows, tokens, prototypes.
-- **Frontend Web:** Builds Next.js client, drawing UI, WebSocket integration. KPIs: stroke latency, bundle size.
-- **Drawing Engine:** Maintains deterministic engine, brush tools, replay support.
-- **Real-Time Game Server:** Manages rooms, timers, scoring, anti-cheat, load tests.
-- **A/V Media:** Owns SFU/TURN setup, QoS, audio/video fallbacks.
-- **DevOps/SRE:** IaC, CI/CD, observability, incident response.
-- **Security:** Threat modeling, rate limits, privacy controls.
-- **QA:** Test plans, automation, performance, launch sign-off.
-- **Analytics/Data:** Event schemas, dashboards, experiment guardrails.
-- Additional agents cover AI moderation, support, marketing, legal, operations, memory, and follow-ups.
+## Handoffs & Stage Gates
+1. **PRD Sign-off** → triggers design flows & delivery plan.
+2. **Architecture Review** → backend/front-end alignment, infra approval.
+3. **Implementation Readiness** → test plans, monitoring, deployment steps.
+4. **Launch Review** → go/no-go checklist, comms, on-call coverage.
 
-## Milestones (excerpt)
-- **M0 Core Game (4–6 weeks):** Canvas, state replication, chat, staging env. Exit: stable 4-player match, <150 ms stroke p95.
-- **M1 Voice + Moderation:** SFU audio, consent, abuse reporting, toxicity filter. Exit: 6-player audio stable, drop <2%/10 min.
-- **M2 Video + Social:** Video tiles, meme sharing, referral loop. Exit: 6 visible tiles, invite conversion >15%.
-- **M3 Teams + Mobile:** Teams mode, mobile polish, brand packs.
+## Collaboration Artifacts
+- `/docs/prd/PRD.md` — single source for scope, success metrics, open questions.
+- `/docs/architecture/overview.md` — system diagrams, contracts.
+- `/docs/project/roadmap.md` — milestone plan, RAID log, velocity snapshots.
+- `/runbook` — on-call, incidents, moderation guides.
+- `/analytics-spec` — events catalog, dashboards, experiment guardrails.
+- `/memory/PROGRESS.md` — session-by-session progress log.
 
-## Shared KPIs
-- **Engagement:** D1 ≥ 35%, D7 ≥ 12%, ≥ 3 rounds/session.
-- **Quality:** WebSocket latency p95 < 120 ms, A/V RTT p95 < 250 ms, drops < 2%.
-- **Safety:** Reports < 3/1k users/day, action time < 10 minutes.
-- **Growth:** Invite → join ≥ 15%, WAU/MAU ≥ 0.55.
-
-## Runbook & Analytics Artifacts
-Maintain runbooks under `runbook/` (on-call, incidents, moderation) and analytics specs under `analytics-spec/` (events, guardrails). Keep decision logs and meeting notes synced with `memory/PROGRESS.md`.
-
-Refer to the original document for full RACI tables, agent scopes, and command prompts when deeper detail is required.
+Agents update the relevant artifact at the end of each working session and tag dependencies in the async stand-up thread.

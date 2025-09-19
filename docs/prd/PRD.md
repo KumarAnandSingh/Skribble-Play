@@ -1,48 +1,70 @@
-# Skribble Game PRD (Draft)
+# Skribble Play — Product Requirements Draft (v0.1)
 
 ## Problem Statement
-Friends want a fast, low-friction way to doodle together and guess topics in real time. Existing options suffer from laggy drawing, clunky onboarding, or poor moderation.
+Groups want a fast, social way to doodle together, guess prompts, and share reactions without set-up friction or lag. Existing solutions suffer from janky canvases, unreliable voice/video, and weak moderation.
 
-## Goals & KPIs
-- D1 retention ≥ 35%, D7 retention ≥ 12%.
-- Room fill rate ≥ 80% (invites accepted / invites sent).
-- Stroke latency p95 < 150 ms for 6 concurrent players.
-- Abuse reports < 3 per 1k users/day with action time < 10 minutes.
+## Goals & Success Metrics
+- **Engagement:** D1 retention ≥ 35%, D7 retention ≥ 12%, ≥ 3 rounds/session, invite→join ≥ 15%.
+- **Quality:** Stroke latency p95 < 150 ms for 6 concurrent drawers, WS disconnects < 1%/session.
+- **Safety:** Profanity filter covers ≥ 95% of banned words, abuse response time < 10 minutes.
+- **Growth:** WAU/MAU ≥ 0.55, referral conversion ≥ 15%.
 
 ## Target Users & JTBD
-- Casual friend groups: “We need a goofy party game that works on laptops and phones without setup.”
-- Streamers & communities: “I want to host drawing rounds with audience participation and easy moderation tools.”
+- **Friend groups / party gamers:** “We want to jump in, laugh, and draw without installing anything.”
+- **Creators / streamers:** “I need predictable latency, moderation tools, and audience participation.”
+- **Casual communities & classrooms:** “Give us collaborative creativity with safe interactions.”
 
-## Scope v0 (M0)
-- Anonymous and named join flows with room codes.
-- Authoritative game server tracking rooms, rounds, guessing, scoring, and hints.
-- Web client with responsive canvas, chat feed, and scoreboard.
-- Basic moderation: kick/ban, profanity filter for guesses, rate limit spam.
-- Telemetry for latency, disconnects, and abuse events.
+## Scope — Milestone M0 (Core Game)
+- Anonymous or named join via room code.
+- Authoritative game loop: lobby, prompt selection, timed drawing, guessing, scoring, hints.
+- Responsive canvas with brush, eraser, undo/redo, stroke replay.
+- Chat feed with profanity filter and simple reactions.
+- Baseline moderation: kick/ban, report, rate limited spam guard.
+- Voice support via SFU (audio-only for M0) with device pre-flight checks.
 
-## Scope v1+ (Beyond M0)
-- Voice chat (M1) with SFU and consent prompts.
-- Replays, meme reactions, emoji packs (M2).
-- Mobile gesture support, teams mode, brand packs (M3+).
+## Out of Scope (M0)
+- Custom word packs marketplace.
+- Native mobile apps (PWA polish only).
+- Video tiles (planned for M1).
+- Monetization features.
 
-## Non-Goals
-- Native mobile apps (PWA only initially).
-- Monetization mechanics (ads, IAP) prior to retention validation.
-- AI-generated drawings or guesses in v0.
+## User Stories (M0)
+1. As a host, I can create a room and share a short code for friends to join.
+2. As a player, I can draw with smooth strokes and undo mistakes in real time.
+3. As a guesser, I can submit guesses with immediate feedback and hints after timeouts.
+4. As a moderator, I can remove disruptive players and ban slurs from chat/guesses.
+5. As a player, I can enable voice chat and see who is speaking with active speaker indicators.
 
-## Success Metrics
-- Average rounds per session ≥ 3.
-- Drop rate during a round < 5%.
-- Invite-to-join conversion ≥ 15%.
+## Functional Requirements
+- **Room Management:** create/join/leave rooms, host controls, player states (drawing, guessing, idle).
+- **Game Loop:** per-round timers, prompt assignment, score calculation, hint schedule, end-of-round summary.
+- **Canvas & Strokes:** deterministic stroke model, compression for transport, replay API for spectators.
+- **Chat & Reactions:** WebSocket-based chat, emoji reactions, rate limiting, profanity filter.
+- **Audio:** WebRTC via shared SFU, device permission & fallback, push-to-talk option.
+- **Moderation:** kick, mute, ban actions; audit log for incidents; rate limiting on messages and guesses.
 
-## Risks & Mitigations
-- **Network latency:** Use regional deployments, delta compression for strokes, predictive smoothing client-side.
-- **Toxic content:** Profanity filters, vote kick, escalation to moderators.
-- **Operational complexity:** Containerized services with IaC, automated CI to enforce testing, observability dashboards.
+## Non-Functional Requirements
+- **Performance:** p95 WS latency < 120 ms (game), < 250 ms audio RTT; 60 fps canvas target.
+- **Scalability:** 50 concurrent rooms × 8 players on a single game-server instance.
+- **Reliability:** Graceful reconnects within 5 seconds, persisted rounds in Redis/Postgres.
+- **Security:** JWT or signed tokens for room access; TLS everywhere; PII minimization.
+- **Accessibility:** Keyboard navigation, ARIA labels, colorblind-safe palette, captions roadmap.
 
-## Dependencies & Open Questions
-- Select SFU stack (LiveKit vs mediasoup) and hosting strategy.
-- Confirm Redis + Postgres managed offerings vs self-host.
-- Determine feature flag system for experiments.
+## Dependencies & Integrations
+- **Persistence:** Postgres (rooms, rounds) + Redis (state + pub/sub).
+- **A/V:** LiveKit Cloud or self-hosted mediasoup (decision pending).
+- **Analytics:** PostHog/Amplitude for event tracking; S3 for replay storage (M1).
+- **Auth:** Anonymous IDs with optional OAuth (M1).
 
-_For full agent ownership and milestone plan, see `docs/AGENTS.md`._
+## Risks & Open Questions
+- SFU vendor choice (feature parity vs operational overhead).
+- Stroke synchronization across high-latency clients (investigate delta compression + reconciliation).
+- Moderation scalability for public rooms (consider ML-based content filters from M1).
+- Voice latency interplay with canvas updates (QoS prioritization needed).
+
+## Next Actions
+1. Validate architecture assumptions in `docs/architecture/overview.md`.
+2. Confirm dependency list and create install scripts.
+3. Prototype canvas engine interactions and WebSocket contracts.
+4. Draft moderation policy and abuse response workflow (`runbook/moderation.md`).
+5. Schedule first cross-agent architecture review.

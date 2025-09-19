@@ -1,32 +1,20 @@
 :root {
-  color-scheme: dark light;
-  font-family: 'Inter', system-ui, sans-serif;
+  --color-background: #0f1020;
+  --color-surface: rgba(30, 24, 60, 0.8);
+  --color-primary: #8f47ff;
+  --color-accent: #ff6fcb;
+  --color-text: #f5f5ff;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle at top, #18122b, #0f0c1a);
-  color: #f5f5f5;
+  background: radial-gradient(circle at top, #1a1635, #08050f);
 }
 
-main {
-  text-align: center;
-  padding: 2rem;
-  border-radius: 12px;
-  background: rgba(10, 10, 20, 0.6);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-}
-
-h1 {
-  margin-bottom: 1rem;
-  font-size: clamp(2rem, 5vw, 3rem);
-}
-
-p {
-  font-size: 1.1rem;
-  line-height: 1.6;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }

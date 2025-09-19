@@ -1,8 +1,8 @@
 {
-  "name": "skribble-game",
+  "name": "skribble-play",
   "version": "0.1.0",
-  "description": "Monorepo for Skribble-style real-time drawing and guessing game.",
   "private": true,
+  "description": "Monorepo for Skribble Play, a real-time multiplayer drawing and guessing experience.",
   "workspaces": [
     "apps/*",
     "services/*",
@@ -14,7 +14,7 @@
     "build": "npm run build --workspaces --if-present",
     "format": "npm run format --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "ci": "npm run lint && npm run test && npm run typecheck"
+    "dev": "npm run dev --workspace @skribble-play/web"
   },
   "engines": {
     "node": ">=18.18",

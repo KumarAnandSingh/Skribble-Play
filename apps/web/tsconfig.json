@@ -1,11 +1,24 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist",
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/components/*": ["src/components/*"],
+      "@/hooks/*": ["src/hooks/*"],
+      "@skribble-play/shared-config": ["../../packages/shared-config/src"],
+      "@skribble-play/drawing-engine": ["../../packages/drawing-engine/src"]
+    },
     "jsx": "preserve",
-    "lib": ["dom", "dom.iterable", "es2020"]
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["next-env.d.ts", "src"],
+  "include": [
+    "next-env.d.ts",
+    "src/**/*",
+    "vitest.config.ts",
+    "next.config.mjs",
+    "tailwind.config.ts"
+  ],
   "exclude": ["node_modules"]
 }

@@ -1,39 +1,58 @@
-# Skribble Game
+# Skribble Play
 
-Real-time multiplayer drawing and guessing game inspired by Skribbl, featuring low-latency collaborative drawing, integrated voice/video chat, and moderation tooling.
+Skribble Play is a real-time multiplayer drawing and guessing experience designed for fast onboarding, expressive tools, and built-in voice/video social loops. This repository hosts the end-to-end platform: web clients, realtime game services, media infrastructure, analytics, and operations playbooks.
 
-## Vision
-- Fast onboarding: friends can join and start sketching in under 10 seconds.
-- Low latency: maintain <150 ms stroke latency at p95 across five to six concurrent players.
-- Social loops: built-in audio/video, reactions, and meme sharing to encourage replays.
+## Vision & Objectives
+- **Instant fun:** players can join a private room and begin drawing in under 10 seconds.
+- **Responsive canvas:** maintain \<150 ms stroke latency at p95 for five concurrent drawers.
+- **Inclusive social loop:** voice/video tiles, animated reactions, and meme packs boost replay value.
+- **Safe & fair play:** moderation hooks, profanity filtering, and abuse reporting guardrails at launch.
 
-## Monorepo Layout (planned)
+## Repository Layout (planned)
 ```
 apps/
-  web/          # Next.js client for players
-  control/      # Admin & moderation surface
-  docs/         # Playtest builds, design system previews
+  web/          # Next.js player client
+  control/      # Moderation & live-ops surface
 services/
-  game-server/  # Authoritative room + scoring service
-  media-sfu/    # WebRTC SFU configs, TURN integration
-  worker/       # Async jobs, notifications
+  game-server/  # Authoritative game state & scoring
+  media-sfu/    # WebRTC SFU orchestration (TBD vendor)
+  worker/       # Background jobs, notifications, analytics fan-out
 packages/
-  drawing-engine/
-  ui-kit/
-  shared-config/
-runbook/
-analytics-spec/
-``` 
+  drawing-engine/ # Deterministic canvas utilities
+  shared-config/  # Typed configuration shared by services
+  ui-kit/         # Shared UI primitives for clients
+docs/
+  prd/            # Product requirements
+  architecture/   # System diagrams & RFCs
+  design/         # UX guidelines & component specs
+  project/        # Delivery plans, RAID logs
+memory/          # Running project memory & decisions
+runbook/         # Operational guides
+analytics-spec/  # Tracking plans & metrics definitions
+```
 
-## Phase 0 Goals (M0: Core Game)
-1. Authoritative room management, stroke fan-out, scoring, and hints.
-2. Deterministic drawing engine with replay support and 30+ FPS rendering.
-3. DevOps baseline: containerized services, CI pipeline, staging environment.
+## Quick Start
+1. Install Node.js v18.18+ and npm v9+.
+2. Install workspace dependencies once packages are defined:
+   ```bash
+   npm install
+   ```
+3. Launch the core experiences (after wiring scripts inside each workspace):
+   ```bash
+   npm run dev --workspace @skribble-play/web       # Web client
+   npm run dev --workspace @skribble-play/game-server
+   ```
+4. Tests will run locally via Vitest, Jest, and Playwright once suites are seeded.
+
+## Testing Locally
+- **Unit & integration:** `npm run test --workspace <package>` (Vitest/Jest).
+- **E2E:** Playwright specs will live under `apps/web/tests` and run with `npm run test:e2e`.
+- **Linting:** `npm run lint --workspace <package>` to enforce ESLint + Prettier.
 
 ## Next Steps
-- Draft PRD + launch plan based on `/Users/priyasingh/Downloads/AGENTS_skribble_game_v0_1.md`.
-- Stand up workspace scaffolding for web client, game server, and drawing engine.
-- Configure continuous integration, linting, and testing harnesses.
-- Implement first playable room with anonymous join and timed guessing rounds.
+- Finalize requirement breakdown with functional specs in `docs/prd/PRD.md`.
+- Confirm tech stack decisions and dependencies list (`docs/architecture/tech-stack.md`).
+- Scaffold core workspaces (web app, game server, shared packages).
+- Set up CI, linting, and testing harnesses for predictable iteration.
 
-Refer to `memory/PROGRESS.md` for day-to-day context and open threads, see `docs/AGENTS.md` for the summarized agent roster, and consult the full playbook at `AGENTS.md` when coordinating cross-team work.
+Refer to `docs/AGENTS.md` (to be synced from the specialist playbook) for role definitions and hand-offs. Update `memory/PROGRESS.md` at the end of each session with achievements, blockers, and next actions.
