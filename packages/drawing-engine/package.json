@@ -1,0 +1,26 @@
+{
+  "name": "@skribble/drawing-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts --format esm --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "nanoid": "5.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "eslint": "9.8.0",
+    "tslib": "2.6.2",
+    "tsup": "7.2.0",
+    "typescript": "5.5.4",
+    "vitest": "1.6.0"
+  }
+}

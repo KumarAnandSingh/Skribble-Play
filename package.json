@@ -1,0 +1,23 @@
+{
+  "name": "skribble-game",
+  "version": "0.1.0",
+  "description": "Monorepo for Skribble-style real-time drawing and guessing game.",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "format": "npm run format --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "ci": "npm run lint && npm run test && npm run typecheck"
+  },
+  "engines": {
+    "node": ">=18.18",
+    "npm": ">=9"
+  }
+}

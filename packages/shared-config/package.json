@@ -1,0 +1,21 @@
+{
+  "name": "@skribble/shared-config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "eslint": "9.8.0",
+    "tsup": "7.2.0",
+    "typescript": "5.5.4",
+    "vitest": "1.6.0"
+  }
+}
