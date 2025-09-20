@@ -15,16 +15,16 @@ Legend: ✅ Done · 🚧 In Progress · ⏳ Not Started
 
 ### Lobby & Navigation
 - ✅ Theme scaffold (Tailwind + shadcn-style primitives) and hero + lobby shell
-- 🚧 Connect lobby to live APIs (`GET /v1/rooms`, filters, skeleton states)
-- 🚧 Friends/private tab with deep-link invites (UI scaffolding live, backend wiring pending)
-- 🚧 Join & Auto-Mic flow with permission handling (permission prompt + join stub live)
+- 🚧 Connect lobby to live APIs (`GET /v1/rooms`, filters, skeleton states) – query wiring live, awaiting backend integration
+- 🚧 Friends/private tab with deep-link invites (UI scaffolding, mock data, share actions)
+- 🚧 Join & Auto-Mic flow with permission handling (browser prompt + join dialog stubbed)
 - 🚧 Create Room modal w/ Zod validation + POST integration
 
 ### Pre-game Room
 - 🚧 Player roster with host drawer selection & kick (UI done, waiting backend wiring)
 - 🚧 Ready-up bar & host controls synced via WS
-- 🚧 Content filter toggles (Kids Mode, profanity level)
-- 🚧 Invite sheet (deep link & share actions staged)
+- 🚧 Content filter toggles (Kids Mode, profanity level) – API + UI in place, need backend hooks for profanity options
+- ✅ Invite sheet (deep link & share actions staged)
 - ⏳ Safety menu actions (mute/block/report)
 
 ### Live Play (Canvas & Guessing)
