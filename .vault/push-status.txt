@@ -1,1 +1,2 @@
-network unreachable
+Commit queue: saved locally, not yet pushed.
+Network still unreachable from sandbox – run `git push` after authenticating on a networked machine.
