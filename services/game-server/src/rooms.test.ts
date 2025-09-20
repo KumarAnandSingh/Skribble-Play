@@ -69,6 +69,16 @@ describe("room routes", () => {
     const membersAfterJoin = await presenceStub.smembers(`room:${createBody.roomCode}:members`);
     expect(membersAfterJoin).toEqual(expect.arrayContaining([createBody.hostPlayer.id, joinBody.playerId]));
 
+    const readyResponse = await server.inject({
+      method: "POST",
+      url: `/rooms/${createBody.roomCode}/ready`,
+      payload: { token: joinBody.playerToken, ready: true }
+    });
+
+    expect(readyResponse.statusCode).toBe(200);
+    const readyBody = readyResponse.json() as { state: GameState };
+    expect(readyBody.state.readyPlayers).toContain(joinBody.playerId);
+
     const getResponse = await server.inject({
       method: "GET",
       url: `/rooms/${createBody.roomCode}`

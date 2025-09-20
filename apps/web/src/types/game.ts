@@ -10,4 +10,5 @@ export interface GameState {
   roundEndsAt: number | null;
   scoreboard: Record<string, number>;
   correctGuessers: string[];
+  readyPlayers: string[];
 }

@@ -22,7 +22,7 @@ Legend: ✅ Done · 🚧 In Progress · ⏳ Not Started
 
 ### Pre-game Room
 - 🚧 Player roster with host drawer selection & kick (UI done, waiting backend wiring)
-- ⏳ Ready-up bar & host controls synced via WS
+- 🚧 Ready-up bar & host controls synced via WS
 - ⏳ Content filter toggles (Kids Mode, profanity level)
 - ⏳ Invite sheet (QR + deep link)
 - ⏳ Safety menu actions (mute/block/report)

@@ -38,6 +38,11 @@ const guessSchema = z.object({
   guess: z.string().min(1)
 });
 
+const readySchema = z.object({
+  token: z.string(),
+  ready: z.boolean()
+});
+
 export function registerRoomRoutes(
   server: FastifyInstance & { io: SocketIOServer },
   store: RoomStore,
@@ -213,6 +218,30 @@ export function registerRoomRoutes(
     }
 
     return reply.send({ correct: result.correct, state: result.state });
+  });
+
+  server.post("/rooms/:code/ready", async (request, reply) => {
+    const { code } = request.params as { code: string };
+    const normalized = code.toUpperCase();
+    const body = readySchema.parse(request.body);
+
+    let claims: { roomCode: string; playerId: string; role: string };
+    try {
+      claims = verifyPlayerToken(body.token);
+    } catch (error) {
+      return reply.code(401).send({ message: "Invalid token" });
+    }
+
+    if (claims.roomCode !== normalized) {
+      return reply.code(403).send({ message: "Token does not match room" });
+    }
+
+    const updated = await gameState.setReady(normalized, claims.playerId, body.ready);
+    const publicState = await gameState.getState(normalized, false);
+    server.io.to(normalized).emit("game:state", publicState);
+
+    const scopedState = await gameState.getState(normalized, claims.role === "host");
+    return reply.send({ state: scopedState });
   });
 
   server.post("/rooms/:code/kick", async (request, reply) => {

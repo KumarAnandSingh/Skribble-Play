@@ -32,6 +32,7 @@ export interface UseRealtimeRoomReturn {
   startRound: (drawingPlayerId?: string) => Promise<void>;
   submitGuess: (guess: string) => Promise<{ correct: boolean }>;
   refreshState: () => Promise<void>;
+  toggleReady: (ready: boolean) => Promise<void>;
 }
 
 function normalizePlayers(list: PresenceMember[]) {
@@ -289,6 +290,28 @@ export function useRealtimeRoom({
     [roomCodeUpper, token]
   );
 
+  const toggleReady = useCallback(
+    async (ready: boolean) => {
+      try {
+        const response = await fetch(`${env.gameServerUrl}/rooms/${roomCodeUpper}/ready`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, ready })
+        });
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as { message?: string } | null;
+          throw new Error(body?.message ?? `Ready toggle failed (${response.status})`);
+        }
+        const body = (await response.json()) as { state: GameState };
+        setState(body.state);
+      } catch (err) {
+        console.error("failed to toggle ready", err);
+        throw err;
+      }
+    },
+    [roomCodeUpper, token]
+  );
+
   return {
     status,
     error,
@@ -298,6 +321,7 @@ export function useRealtimeRoom({
     sendStroke,
     startRound,
     submitGuess,
-    refreshState: fetchState
+    refreshState: fetchState,
+    toggleReady
   };
 }

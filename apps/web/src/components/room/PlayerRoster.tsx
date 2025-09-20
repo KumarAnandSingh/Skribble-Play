@@ -13,6 +13,7 @@ export interface PlayerRosterEntry {
   connection?: "excellent" | "good" | "poor";
   lastSeen?: number;
   score?: number;
+  isReady?: boolean;
 }
 
 interface PlayerRosterProps {
@@ -75,6 +76,7 @@ export function PlayerRoster({
                     <span>{player.nickname || player.id}</span>
                     {isCurrent ? <Badge variant="outline">You</Badge> : null}
                     {player.isSpeaking ? <Badge variant="success">Speaking</Badge> : null}
+                    {player.isReady ? <Badge variant="success">Ready</Badge> : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-white/60">
                     <span>{roleLabel[player.role]}</span>

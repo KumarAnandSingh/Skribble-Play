@@ -25,7 +25,7 @@ export default function PlayRoomPage({ params }: any) {
   const [kickingId, setKickingId] = useState<string | null>(null);
   const [selectedDrawerId, setSelectedDrawerId] = useState<string | null>(null);
 
-  const { status, error, players, state, strokes, sendStroke, startRound, submitGuess } = useRealtimeRoom({
+  const { status, error, players, state, strokes, sendStroke, startRound, submitGuess, toggleReady } = useRealtimeRoom({
     roomCode,
     playerId,
     token,
@@ -146,6 +146,13 @@ export default function PlayRoomPage({ params }: any) {
     [players, selectedDrawerId]
   );
 
+  const readyCount = state?.readyPlayers.length ?? 0;
+  const totalPlayers = sortedPlayers.length;
+  const readyProgress = totalPlayers > 0 ? Math.min((readyCount / totalPlayers) * 100, 100) : 0;
+  const isPlayerReady = state?.readyPlayers.includes(playerId) ?? false;
+  const startDisabled =
+    status !== "connected" || totalPlayers === 0 || readyCount === 0 || readyCount !== totalPlayers;
+
   useEffect(() => {
     if (role !== "host") return;
     if (selectedDrawerId && players.some((member) => member.playerId === selectedDrawerId)) {
@@ -202,7 +209,7 @@ export default function PlayRoomPage({ params }: any) {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Canvas</h2>
             {role === "host" && state?.phase !== "drawing" ? (
-              <Button variant="ghost" onClick={handleStartRound} disabled={status !== "connected"}>
+              <Button variant="ghost" onClick={handleStartRound} disabled={startDisabled}>
                 {startButtonLabel}
               </Button>
             ) : null}
@@ -220,7 +227,7 @@ export default function PlayRoomPage({ params }: any) {
         </div>
 
         <aside className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-black/20 p-6 shadow-panel">
-          <section>
+         <section>
             <h2 className="text-lg font-semibold">Session Details</h2>
             <dl className="mt-3 space-y-2 text-sm text-white/80">
               <div>
@@ -238,6 +245,31 @@ export default function PlayRoomPage({ params }: any) {
             </dl>
           </section>
 
+          <section>
+            <div className="flex items-center justify-between text-xs uppercase tracking-wide text-white/60">
+              <span>Ready</span>
+              <span>
+                {readyCount}/{totalPlayers}
+              </span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#8f47ff] to-[#ff6fcb] transition-[width]"
+                style={{ width: `${readyProgress}%` }}
+              />
+            </div>
+            <Button
+              className="mt-3 w-full"
+              variant={isPlayerReady ? "ghost" : "primary"}
+              onClick={() => {
+                void toggleReady(!isPlayerReady);
+              }}
+              disabled={status !== "connected"}
+            >
+              {isPlayerReady ? "Ready ✔" : "Ready up"}
+            </Button>
+          </section>
+
           <PlayerRoster
             players={sortedPlayers.map((member) => ({
               id: member.playerId,
@@ -253,7 +285,8 @@ export default function PlayRoomPage({ params }: any) {
               isSpeaking: false,
               score: state?.scoreboard[member.playerId] ?? 0,
               lastSeen: member.lastSeenAt,
-              connection: "good"
+              connection: "good",
+              isReady: state?.readyPlayers.includes(member.playerId)
             }))}
             currentUserId={playerId}
             hostActions={role === "host" ? {

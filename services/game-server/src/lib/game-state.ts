@@ -16,6 +16,7 @@ export interface GameState {
   roundEndsAt: number | null;
   scoreboard: Scoreboard;
   correctGuessers: string[];
+  readyPlayers: string[];
 }
 
 export interface GameLoopConfig {
@@ -36,7 +37,8 @@ const DEFAULT_STATE: GameState = {
   drawingPlayerId: null,
   roundEndsAt: null,
   scoreboard: {},
-  correctGuessers: []
+  correctGuessers: [],
+  readyPlayers: []
 };
 
 function maskPrompt(prompt: string) {
@@ -119,7 +121,8 @@ export class GameStateManager {
       drawingPlayerId,
       roundEndsAt: Date.now() + this.drawDuration,
       scoreboard,
-      correctGuessers: []
+      correctGuessers: [],
+      readyPlayers: []
     };
 
     await this.redis.set(this.stateKey(roomCode), JSON.stringify(state));
@@ -136,7 +139,8 @@ export class GameStateManager {
     const state: GameState = {
       ...current,
       phase: "results",
-      roundEndsAt: Date.now()
+      roundEndsAt: Date.now(),
+      readyPlayers: []
     };
     await this.redis.set(this.stateKey(roomCode), JSON.stringify(state));
     await this.writeScoreboard(roomCode, state.scoreboard);
@@ -192,6 +196,22 @@ export class GameStateManager {
 
   async getScores(roomCode: string): Promise<Scoreboard> {
     return this.readScoreboard(roomCode);
+  }
+
+  async setReady(roomCode: string, playerId: string, ready: boolean): Promise<GameState> {
+    const current = await this.getState(roomCode, true);
+    const readyPlayers = new Set(current.readyPlayers);
+    if (ready) {
+      readyPlayers.add(playerId);
+    } else {
+      readyPlayers.delete(playerId);
+    }
+    const updated: GameState = {
+      ...current,
+      readyPlayers: Array.from(readyPlayers)
+    };
+    await this.redis.set(this.stateKey(roomCode), JSON.stringify(updated));
+    return updated;
   }
 
   private scheduleEnd(roomCode: string, endAt: number | null) {
