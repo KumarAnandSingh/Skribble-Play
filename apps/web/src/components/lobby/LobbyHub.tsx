@@ -30,31 +30,61 @@ type FieldErrors = Partial<Record<keyof CreateRoomValues, string>>;
 export function LobbyHub() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
-  const { data, isLoading, isError, refetch } = usePublicRooms();
+  const [modeFilter, setModeFilter] = useState<string | undefined>(undefined);
+  const [languageFilter, setLanguageFilter] = useState<string | undefined>(undefined);
+  const { data, isLoading, isError, refetch } = usePublicRooms({ mode: modeFilter, language: languageFilter });
 
   const filteredRooms = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
-    if (!data) return [];
-    if (!keyword) return data;
-    return data.filter((room) => room.name.toLowerCase().includes(keyword));
-  }, [data, searchTerm]);
+    const list = data ?? [];
+    return list.filter((room) => {
+      const matchesKeyword = !keyword || room.name.toLowerCase().includes(keyword) || room.tags?.some((tag) => tag.toLowerCase().includes(keyword));
+      const matchesMode = !modeFilter || room.mode.toLowerCase() === modeFilter.toLowerCase();
+      const matchesLanguage = !languageFilter || (room.language ?? "").toLowerCase() === languageFilter.toLowerCase();
+      return matchesKeyword && matchesMode && matchesLanguage;
+    });
+  }, [data, searchTerm, modeFilter, languageFilter]);
 
   return (
     <section className="w-full max-w-6xl rounded-4xl border border-white/10 bg-black/30 p-8 shadow-panel">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-white">Find a Room</h2>
           <p className="text-sm text-white/60">Jump into a public lobby, invite friends, or spin up your own squad.</p>
         </div>
-        <div className="w-full max-w-xs">
-          <Label htmlFor="room-search">Search rooms</Label>
-          <Input
-            id="room-search"
-            placeholder="Mystic Doodles…"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            className="mt-1"
-          />
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:gap-4">
+          <div className="w-full sm:w-48">
+            <Label htmlFor="room-search">Search rooms</Label>
+            <Input
+              id="room-search"
+              placeholder="Mystic Doodles…"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:w-auto">
+            <div>
+              <Label htmlFor="mode-filter">Mode</Label>
+              <Input
+                id="mode-filter"
+                placeholder="quick-play"
+                value={modeFilter ?? ""}
+                onChange={(event) => setModeFilter(event.target.value || undefined)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="lang-filter">Language</Label>
+              <Input
+                id="lang-filter"
+                placeholder="English"
+                value={languageFilter ?? ""}
+                onChange={(event) => setLanguageFilter(event.target.value || undefined)}
+                className="mt-1"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -104,13 +134,7 @@ export function LobbyHub() {
         </TabsContent>
 
         <TabsContent value="friends">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
-            <p>Friends rooms will appear here once you add people. Share your invite link to squad up.</p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Button variant="ghost">Invite friends</Button>
-              <Button variant="ghost">Import from contacts</Button>
-            </div>
-          </div>
+          <FriendsTab />
         </TabsContent>
 
         <TabsContent value="create">
@@ -302,5 +326,35 @@ function CreateRoomSheet({ onCreated }: CreateRoomSheetProps) {
       </div>
       {submissionError ? <p className="text-sm text-rose-300">{submissionError}</p> : null}
     </form>
+  );
+}
+
+function FriendsTab() {
+  return (
+    <div className="flex flex-col gap-6 rounded-3xl border border-white/10 bg-white/5 p-6 text-sm text-white/80">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Squads & invites</h3>
+          <p className="text-xs text-white/60">Manage ongoing private rooms, invites, and quick hop-ins.</p>
+        </div>
+        <Button variant="ghost">Create friend list</Button>
+      </div>
+
+      <div className="rounded-2xl border border-dashed border-white/20 p-6 text-sm text-white/70">
+        <p>No friend rooms yet. Share your invite link or import contacts to squad up instantly.</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button variant="primary">Invite friends</Button>
+          <Button variant="ghost">Import from contacts</Button>
+          <Button variant="ghost">Generate deep link</Button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold uppercase tracking-wide text-white/60">Pending invites</h4>
+        <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/70">
+          <p>Invites will appear here once friends send them. Accept to jump straight into their lobby.</p>
+        </div>
+      </div>
+    </div>
   );
 }

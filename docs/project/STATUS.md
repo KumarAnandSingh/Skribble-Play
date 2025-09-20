@@ -16,7 +16,7 @@ Legend: ✅ Done · 🚧 In Progress · ⏳ Not Started
 ### Lobby & Navigation
 - ✅ Theme scaffold (Tailwind + shadcn-style primitives) and hero + lobby shell
 - 🚧 Connect lobby to live APIs (`GET /v1/rooms`, filters, skeleton states)
-- ⏳ Friends/private tab with deep-link invites
+- 🚧 Friends/private tab with deep-link invites (UI scaffolding live, backend wiring pending)
 - ⏳ Join & Auto-Mic flow with permission handling
 - 🚧 Create Room modal w/ Zod validation + POST integration
 

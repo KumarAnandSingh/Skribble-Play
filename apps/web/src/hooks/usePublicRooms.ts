@@ -10,6 +10,9 @@ export interface PublicRoom {
   status: "open" | "in-progress" | "locked";
   language?: string;
   roundLength?: number;
+  tags?: string[];
+  friendsOnline?: number;
+  invitesPending?: number;
 }
 
 const fallbackRooms: PublicRoom[] = [
@@ -64,9 +67,9 @@ async function fetchPublicRooms(signal?: AbortSignal): Promise<PublicRoom[]> {
   }
 }
 
-export function usePublicRooms() {
+export function usePublicRooms(filters?: { mode?: string; language?: string }) {
   return useQuery({
-    queryKey: ["publicRooms"],
+    queryKey: ["publicRooms", filters],
     queryFn: ({ signal }) => fetchPublicRooms(signal),
     staleTime: 30_000
   });
