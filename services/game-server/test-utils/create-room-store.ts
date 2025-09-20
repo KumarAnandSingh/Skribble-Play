@@ -1,32 +1,102 @@
-import { Pool } from "pg";
-import { RoomStore, type RedisLike } from "../src/lib/room-store";
+import { randomUUID } from "node:crypto";
+import type { RoomStore } from "../src/lib/room-store";
 
-class FakeRedis implements RedisLike {
-  private sets = new Map<string, Set<string>>();
+interface TestPlayer {
+  id: string;
+  nickname: string;
+  joinedAt: string;
+  isHost: boolean;
+}
 
-  async sadd(key: string, member: string): Promise<number> {
-    const current = this.sets.get(key) ?? new Set<string>();
-    const sizeBefore = current.size;
-    current.add(member);
-    this.sets.set(key, current);
-    return current.size > sizeBefore ? 1 : 0;
+interface TestRoom {
+  roomCode: string;
+  hostToken: string;
+  createdAt: string;
+  players: TestPlayer[];
+}
+
+class InMemoryRoomStore {
+  private rooms = new Map<string, TestRoom>();
+
+  async init() {}
+  async close() {}
+
+  async createRoom(hostNickname: string) {
+    const roomCode = randomUUID().slice(0, 6).toUpperCase();
+    const hostToken = randomUUID();
+    const now = new Date().toISOString();
+    const hostPlayer: TestPlayer = {
+      id: randomUUID(),
+      nickname: hostNickname,
+      joinedAt: now,
+      isHost: true
+    };
+    this.rooms.set(roomCode, {
+      roomCode,
+      hostToken,
+      createdAt: now,
+      players: [hostPlayer]
+    });
+    return {
+      roomCode,
+      hostToken,
+      hostPlayer
+    };
   }
 
-  async srem(key: string, member: string): Promise<number> {
-    const current = this.sets.get(key);
-    if (!current) return 0;
-    const existed = current.delete(member);
-    return existed ? 1 : 0;
+  async getRoom(roomCode: string) {
+    const normalized = roomCode.toUpperCase();
+    const room = this.rooms.get(normalized);
+    if (!room) return null;
+    return {
+      roomCode: normalized,
+      createdAt: room.createdAt,
+      players: room.players.map(({ isHost, ...rest }) => rest)
+    };
   }
 
-  async flushall(): Promise<string> {
-    this.sets.clear();
-    return "OK";
+  async getPlayer(roomCode: string, playerId: string) {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room) return null;
+    const player = room.players.find((p) => p.id === playerId);
+    if (!player) return null;
+    const { isHost, ...rest } = player;
+    return rest;
   }
 
-  async quit(): Promise<string> {
-    this.sets.clear();
-    return "OK";
+  async getHostToken(roomCode: string) {
+    return this.rooms.get(roomCode.toUpperCase())?.hostToken ?? null;
+  }
+
+  async joinRoom(roomCode: string, nickname: string, playerId?: string) {
+    const normalized = roomCode.toUpperCase();
+    const room = this.rooms.get(normalized);
+    if (!room) {
+      throw new Error("ROOM_NOT_FOUND");
+    }
+    const id = playerId ?? randomUUID();
+    const existing = room.players.find((p) => p.id === id);
+    if (existing) {
+      existing.nickname = nickname;
+      return { playerId: id };
+    }
+    room.players.push({
+      id,
+      nickname,
+      joinedAt: new Date().toISOString(),
+      isHost: false
+    });
+    return { playerId: id };
+  }
+
+  async leaveRoom(roomCode: string, playerId: string) {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room) return;
+    room.players = room.players.filter((p) => p.id !== playerId);
+  }
+
+  async clearAll() {
+    this.rooms.clear();
   }
 }
 
@@ -35,42 +105,13 @@ export interface TestRoomStore {
   cleanup: () => Promise<void>;
 }
 
-function resolveConnectionString() {
-  return (
-    process.env.TEST_POSTGRES_URL ??
-    process.env.POSTGRES_URL ??
-    "postgresql://postgres:postgres@localhost:55432/skribble_play"
-  );
-}
-
-function generateSchemaName() {
-  return `room_test_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
 export async function createTestRoomStore(): Promise<TestRoomStore> {
-  const connectionString = resolveConnectionString();
-  const schema = generateSchemaName();
-
-  const bootstrapPool = new Pool({ connectionString });
-  await bootstrapPool.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
-  await bootstrapPool.end();
-
-  const pool = new Pool({ connectionString, options: `-c search_path=${schema}` });
-  const redis = new FakeRedis();
-
-  const store = new RoomStore(pool, redis);
-  await store.clearAll().catch(() => undefined);
+  const store = new InMemoryRoomStore();
   await store.init();
-
   return {
-    store,
+    store: store as unknown as RoomStore,
     cleanup: async () => {
-      await store.clearAll().catch(() => undefined);
-      await store.close();
-
-      const cleanupPool = new Pool({ connectionString });
-      await cleanupPool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-      await cleanupPool.end();
+      await store.clearAll();
     }
   };
 }

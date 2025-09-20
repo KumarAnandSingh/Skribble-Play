@@ -5,20 +5,46 @@
     "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/components/*": ["src/components/*"],
-      "@/hooks/*": ["src/hooks/*"],
-      "@skribble-play/shared-config": ["../../packages/shared-config/src"],
-      "@skribble-play/drawing-engine": ["../../packages/drawing-engine/src"]
+      "@/components/*": [
+        "src/components/*"
+      ],
+      "@/hooks/*": [
+        "src/hooks/*"
+      ],
+      "@/lib/*": [
+        "src/lib/*"
+      ],
+      "@/types/*": [
+        "src/types/*"
+      ],
+      "@skribble-play/shared-config": [
+        "../../packages/shared-config/src"
+      ],
+      "@skribble-play/drawing-engine": [
+        "../../packages/drawing-engine/src"
+      ]
     },
     "jsx": "preserve",
-    "types": ["vitest/globals", "@testing-library/jest-dom"]
+    "types": [
+      "vitest/globals",
+      "@testing-library/jest-dom"
+    ],
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
   "include": [
     "next-env.d.ts",
-    "src/**/*",
-    "vitest.config.ts",
     "next.config.mjs",
-    "tailwind.config.ts"
+    "src/**/*",
+    "tailwind.config.ts",
+    "vitest.config.ts",
+    ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

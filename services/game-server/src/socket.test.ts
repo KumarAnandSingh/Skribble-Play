@@ -3,7 +3,9 @@ import { io, Socket } from "socket.io-client";
 import { createServer } from "./index";
 import { createTestRoomStore } from "../test-utils/create-room-store";
 import type { GameEvent, GameEventQueue } from "./lib/event-queue";
-import type Redis from "ioredis";
+import { createFakeRedis } from "../test-utils/fake-redis";
+import { StrokeHistory } from "./lib/stroke-history";
+import { GameStateManager, type GameState } from "./lib/game-state";
 import type { Stroke } from "@skribble-play/drawing-engine";
 
 let sockets: Socket[] = [];
@@ -75,12 +77,16 @@ describe("socket events", () => {
       },
       close: async () => {}
     };
-    const presenceStub = {
-      smembers: async () => [],
-      hgetall: async () => ({}),
-      quit: async () => {}
-    } as unknown as Redis;
-    const { server, config } = await createServer({ roomStore: store, eventQueue: queue, presenceClient: presenceStub });
+    const presenceStub = createFakeRedis();
+    const strokeHistory = new StrokeHistory({ redis: presenceStub });
+    const gameState = new GameStateManager(presenceStub, { prompts: ["Rocket"] });
+    const { server, config } = await createServer({
+      roomStore: store,
+      eventQueue: queue,
+      presenceClient: presenceStub,
+      strokeHistory,
+      gameState
+    });
 
     await server.listen({ port: 0, host: "127.0.0.1" });
     const address = server.server.address();
@@ -101,7 +107,15 @@ describe("socket events", () => {
     await waitForEvent(clientA, "connect");
     await welcomeA;
 
-    const joinAckA = await emitWithAck<{ ok: boolean; playerId?: string; token?: string; error?: string }>(clientA, "game:join", {
+    const joinAckA = await emitWithAck<{
+      ok: boolean;
+      playerId?: string;
+      token?: string;
+      nickname?: string;
+      state?: unknown;
+      strokes?: Stroke[];
+      error?: string;
+    }>(clientA, "game:join", {
       roomCode: room.roomCode,
       nickname: "PlayerA"
     });
@@ -123,7 +137,15 @@ describe("socket events", () => {
     await waitForEvent(clientB, "connect");
     await welcomeB;
 
-    const joinAckB = await emitWithAck<{ ok: boolean; playerId?: string; token?: string; error?: string }>(clientB, "game:join", {
+    const joinAckB = await emitWithAck<{
+      ok: boolean;
+      playerId?: string;
+      token?: string;
+      nickname?: string;
+      state?: GameState;
+      strokes?: Stroke[];
+      error?: string;
+    }>(clientB, "game:join", {
       roomCode: room.roomCode,
       nickname: "PlayerB"
     });
@@ -132,6 +154,10 @@ describe("socket events", () => {
     const playerBId = joinAckB.playerId;
     expect(playerBId).toBeDefined();
     expect(joinAckB.token).toBeDefined();
+    expect(joinAckB.state).toBeDefined();
+
+    const presenceMembers = await presenceStub.smembers(`room:${room.roomCode}:members`);
+    expect(presenceMembers).toEqual(expect.arrayContaining([playerAId!, playerBId!]));
 
     const broadcast = await broadcastPromise;
     expect(broadcast).toEqual({ playerId: playerBId, nickname: "PlayerB" });
@@ -143,10 +169,10 @@ describe("socket events", () => {
       stroke: {
         id: `${playerBId}-stroke`,
         color: "#ffffff",
-        width: 3,
+        brushSize: 3,
         points: [
-          { x: 0.1, y: 0.1, t: Date.now() },
-          { x: 0.2, y: 0.2, t: Date.now() + 10 }
+          { x: 0.1, y: 0.1, timestamp: Date.now() },
+          { x: 0.2, y: 0.2, timestamp: Date.now() + 10 }
         ]
       }
     });
@@ -155,6 +181,9 @@ describe("socket events", () => {
     const remoteStroke = await strokePromise;
     expect(remoteStroke.playerId).toBe(playerBId);
 
+    const presenceRecordB = await presenceStub.hgetall(`room:${room.roomCode}:member:${playerBId}`);
+    expect(Number(presenceRecordB.occurredAt)).toBeGreaterThan(0);
+
     const persistedRoom = await store.getRoom(room.roomCode);
     expect(persistedRoom?.players.map((p) => p.id)).toEqual(
       expect.arrayContaining([room.hostPlayer.id, playerAId, playerBId])
@@ -162,11 +191,17 @@ describe("socket events", () => {
 
     clientA.disconnect();
     clientB.disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const presenceAfterDisconnect = await presenceStub.smembers(`room:${room.roomCode}:members`);
+    expect(presenceAfterDisconnect).not.toContain(playerAId);
+    expect(presenceAfterDisconnect).not.toContain(playerBId);
     await server.close();
 
     expect(events.map((event) => event.type)).toEqual([
       "room.join",
-      "room.join"
+      "room.join",
+      "room.leave",
+      "room.leave"
     ]);
   });
 });

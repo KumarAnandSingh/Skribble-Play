@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import type { Stroke } from "@skribble-play/drawing-engine";
 import { env } from "@/lib/env";
+import type { GameState } from "@/types/game";
 
 export interface PresenceMember {
   playerId: string;
@@ -17,14 +18,20 @@ export interface UseRealtimeRoomOptions {
   playerId: string;
   token: string;
   nickname?: string;
-  onRemoteStroke?: (stroke: Stroke) => void;
+  role?: "host" | "player";
+  hostToken?: string;
 }
 
 export interface UseRealtimeRoomReturn {
   status: "connecting" | "connected" | "error";
   error: string | null;
   players: PresenceMember[];
+  state: GameState | null;
+  strokes: Stroke[];
   sendStroke: (stroke: Stroke) => void;
+  startRound: (drawingPlayerId?: string) => Promise<void>;
+  submitGuess: (guess: string) => Promise<{ correct: boolean }>;
+  refreshState: () => Promise<void>;
 }
 
 function normalizePlayers(list: PresenceMember[]) {
@@ -35,10 +42,19 @@ function normalizePlayers(list: PresenceMember[]) {
   return Array.from(seen.values());
 }
 
-export function useRealtimeRoom({ roomCode, playerId, token, nickname, onRemoteStroke }: UseRealtimeRoomOptions): UseRealtimeRoomReturn {
+export function useRealtimeRoom({
+  roomCode,
+  playerId,
+  token,
+  nickname,
+  role = "player",
+  hostToken
+}: UseRealtimeRoomOptions): UseRealtimeRoomReturn {
   const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
   const [error, setError] = useState<string | null>(null);
   const [players, setPlayers] = useState<PresenceMember[]>([]);
+  const [state, setState] = useState<GameState | null>(null);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
   const socketRef = useRef<Socket | null>(null);
   const roomCodeUpper = useMemo(() => roomCode.toUpperCase(), [roomCode]);
 
@@ -94,8 +110,17 @@ export function useRealtimeRoom({ roomCode, playerId, token, nickname, onRemoteS
           token,
           nickname
         },
-        (ack: { ok: boolean; playerId?: string; token?: string; nickname?: string; error?: string }) => {
-          if (!ack.ok || !ack.playerId) {
+        (ack: {
+          ok: boolean;
+          playerId?: string;
+          token?: string;
+          nickname?: string;
+          state?: GameState;
+          strokes?: Stroke[];
+          error?: string;
+        }) => {
+          const joinedPlayerId = ack.playerId;
+          if (!ack.ok || !joinedPlayerId) {
             setStatus("error");
             setError(ack.error ?? "Failed to join room.");
             return;
@@ -104,13 +129,19 @@ export function useRealtimeRoom({ roomCode, playerId, token, nickname, onRemoteS
             normalizePlayers([
               ...prev,
               {
-                playerId: ack.playerId,
+                playerId: joinedPlayerId,
                 nickname: ack.nickname ?? nickname ?? "",
                 source: "socket",
                 lastSeenAt: Date.now()
               }
             ])
           );
+          if (ack.state) {
+            setState(ack.state);
+          }
+          if (ack.strokes) {
+            setStrokes(ack.strokes);
+          }
         }
       );
     });
@@ -143,6 +174,10 @@ export function useRealtimeRoom({ roomCode, playerId, token, nickname, onRemoteS
       setPlayers((prev) => prev.filter((member) => member.playerId !== payload.playerId));
     });
 
+    socket.on("canvas:history", (payload: { strokes: Stroke[] }) => {
+      setStrokes(payload.strokes);
+    });
+
     socket.on("canvas:stroke", (payload: { stroke: Stroke; playerId?: string }) => {
       if (payload.playerId) {
         setPlayers((prev) =>
@@ -153,14 +188,18 @@ export function useRealtimeRoom({ roomCode, playerId, token, nickname, onRemoteS
           )
         );
       }
-      onRemoteStroke?.(payload.stroke);
+      setStrokes((prev) => [...prev, payload.stroke]);
+    });
+
+    socket.on("game:state", (nextState: GameState) => {
+      setState(nextState);
     });
 
     return () => {
       socket.removeAllListeners();
       socket.disconnect();
     };
-  }, [roomCodeUpper, playerId, token, nickname, onRemoteStroke]);
+  }, [roomCodeUpper, playerId, token, nickname]);
 
   const sendStroke = useCallback(
     (stroke: Stroke) => {
@@ -174,8 +213,10 @@ export function useRealtimeRoom({ roomCode, playerId, token, nickname, onRemoteS
           stroke
         },
         (ack: { ok: boolean; error?: string }) => {
-          if (!ack?.ok && ack?.error) {
-            console.error("Failed to send stroke", ack.error);
+          if (!ack?.ok) {
+            console.error("Failed to send stroke", ack?.error);
+          } else {
+            setStrokes((prev) => [...prev, stroke]);
           }
         }
       );
@@ -183,5 +224,80 @@ export function useRealtimeRoom({ roomCode, playerId, token, nickname, onRemoteS
     [roomCodeUpper, token]
   );
 
-  return { status, error, players, sendStroke };
+  const fetchState = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (role === "host" && hostToken) {
+        params.set("hostToken", hostToken);
+      } else {
+        params.set("token", token);
+      }
+      const response = await fetch(`${env.gameServerUrl}/rooms/${roomCodeUpper}/state?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`State fetch failed (${response.status})`);
+      }
+      const body = (await response.json()) as GameState;
+      setState(body);
+    } catch (err) {
+      console.error("failed to refresh state", err);
+    }
+  }, [hostToken, role, roomCodeUpper, token]);
+
+  const startRound = useCallback(
+    async (drawingPlayerId?: string) => {
+      if (role !== "host" || !hostToken) return;
+      try {
+        const response = await fetch(`${env.gameServerUrl}/rooms/${roomCodeUpper}/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hostToken, hostPlayerId: playerId, drawingPlayerId })
+        });
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as { message?: string } | null;
+          throw new Error(body?.message ?? `Start round failed (${response.status})`);
+        }
+        const body = (await response.json()) as GameState;
+        setState(body);
+      } catch (err) {
+        console.error("failed to start round", err);
+        throw err;
+      }
+    },
+    [hostToken, playerId, role, roomCodeUpper]
+  );
+
+  const submitGuess = useCallback(
+    async (guess: string) => {
+      try {
+        const response = await fetch(`${env.gameServerUrl}/rooms/${roomCodeUpper}/guess`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, guess })
+        });
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as { message?: string } | null;
+          throw new Error(body?.message ?? `Guess failed (${response.status})`);
+        }
+        const body = (await response.json()) as { correct: boolean; state: GameState };
+        setState(body.state);
+        return { correct: body.correct };
+      } catch (err) {
+        console.error("failed to submit guess", err);
+        throw err;
+      }
+    },
+    [roomCodeUpper, token]
+  );
+
+  return {
+    status,
+    error,
+    players,
+    state,
+    strokes,
+    sendStroke,
+    startRound,
+    submitGuess,
+    refreshState: fetchState
+  };
 }

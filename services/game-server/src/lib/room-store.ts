@@ -1,4 +1,7 @@
-import { Pool } from "pg";
+import pg from "pg";
+import type { Pool as PgPool } from "pg";
+
+const { Pool } = pg;
 import { randomUUID } from "node:crypto";
 
 export interface PlayerRecord {
@@ -24,10 +27,10 @@ export interface JoinRoomResult {
 }
 
 export class RoomStore {
-  private readonly pool: Pool;
+  private readonly pool: PgPool;
   private initialized = false;
 
-  constructor(pool: Pool) {
+  constructor(pool: PgPool) {
     this.pool = pool;
   }
 
@@ -122,7 +125,7 @@ export class RoomStore {
     return {
       roomCode: roomResult.rows[0].room_code,
       createdAt: roomResult.rows[0].created_at.toISOString(),
-      players: playersResult.rows.map((player) => ({
+      players: playersResult.rows.map((player: { id: string; nickname: string; joined_at: Date }) => ({
         id: player.id,
         nickname: player.nickname,
         joinedAt: player.joined_at.toISOString()

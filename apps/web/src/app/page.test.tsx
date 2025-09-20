@@ -9,11 +9,6 @@ vi.mock("next/navigation", () => ({
   })
 }));
 
-declare global {
-  // eslint-disable-next-line no-var
-  var fetch: typeof fetch;
-}
-
 describe("HomePage", () => {
   beforeEach(() => {
     vi.resetAllMocks();

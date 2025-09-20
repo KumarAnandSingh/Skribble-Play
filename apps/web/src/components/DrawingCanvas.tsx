@@ -10,11 +10,11 @@ export interface DrawingCanvasProps {
   remoteStrokes: Stroke[];
 }
 
-function createStroke(playerId: string, color: string, width: number): Stroke {
+function createStroke(playerId: string, color: string, brushSize: number): Stroke {
   return {
     id: `${playerId}-${Date.now()}`,
     color,
-    width,
+    brushSize,
     points: []
   };
 }
@@ -25,7 +25,7 @@ function drawStroke(context: CanvasRenderingContext2D, stroke: Stroke) {
   if (points.length === 0) return;
 
   context.strokeStyle = stroke.color;
-  context.lineWidth = stroke.width;
+  context.lineWidth = stroke.brushSize;
   context.lineCap = "round";
   context.lineJoin = "round";
   context.beginPath();
@@ -47,7 +47,7 @@ export function DrawingCanvas({ playerId, onStroke, remoteStrokes }: DrawingCanv
   const strokeRef = useRef<Stroke | null>(null);
 
   const strokeColor = useMemo(() => "#8f47ff", []);
-  const strokeWidth = 3;
+  const brushSize = 3;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -66,13 +66,17 @@ export function DrawingCanvas({ playerId, onStroke, remoteStrokes }: DrawingCanv
   }, []);
 
   useEffect(() => {
-    if (remoteStrokes.length === 0) return;
-    const latest = remoteStrokes[remoteStrokes.length - 1];
     const canvas = canvasRef.current;
     if (!canvas) return;
     const context = canvas.getContext("2d");
     if (!context) return;
-    drawStroke(context, latest);
+
+    const { width, height } = canvas;
+    context.clearRect(0, 0, width, height);
+    context.fillStyle = "#0f1020";
+    context.fillRect(0, 0, width, height);
+
+    remoteStrokes.forEach((stroke) => drawStroke(context, stroke));
   }, [remoteStrokes]);
 
   function pointerPoint(event: React.PointerEvent<HTMLCanvasElement>): StrokePoint {
@@ -81,7 +85,8 @@ export function DrawingCanvas({ playerId, onStroke, remoteStrokes }: DrawingCanv
     return {
       x: (event.clientX - rect.left) / rect.width,
       y: (event.clientY - rect.top) / rect.height,
-      t: Date.now()
+      timestamp: Date.now(),
+      pressure: event.pressure && event.pressure > 0 ? event.pressure : undefined
     };
   }
 
@@ -90,7 +95,7 @@ export function DrawingCanvas({ playerId, onStroke, remoteStrokes }: DrawingCanv
     const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.setPointerCapture(event.pointerId);
-    const stroke = createStroke(playerId, strokeColor, strokeWidth);
+    const stroke = createStroke(playerId, strokeColor, brushSize);
     stroke.points.push(pointerPoint(event));
     strokeRef.current = stroke;
     setIsDrawing(true);
@@ -109,7 +114,7 @@ export function DrawingCanvas({ playerId, onStroke, remoteStrokes }: DrawingCanv
       const prev = stroke.points[stroke.points.length - 2];
       const { width, height } = context.canvas;
       context.strokeStyle = stroke.color;
-      context.lineWidth = stroke.width;
+      context.lineWidth = stroke.brushSize;
       context.lineCap = "round";
       context.beginPath();
       context.moveTo(prev.x * width, prev.y * height);

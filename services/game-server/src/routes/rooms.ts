@@ -1,9 +1,13 @@
 import type { FastifyInstance } from "fastify";
+import type { Server as SocketIOServer } from "socket.io";
 import { z } from "zod";
 import type { RoomStore } from "../lib/room-store";
 import type { GameEventQueue } from "../lib/event-queue";
-import { createPlayerToken } from "../lib/auth-tokens";
+import { createPlayerToken, verifyPlayerToken } from "../lib/auth-tokens";
 import type { Redis } from "ioredis";
+import type { StrokeHistory } from "../lib/stroke-history";
+import { GameStateManager } from "../lib/game-state";
+import { removePresence, touchPresence, upsertPresence } from "../lib/presence";
 
 const createRoomSchema = z.object({
   hostNickname: z.string().min(1).max(32)
@@ -23,10 +27,31 @@ const kickRoomSchema = z.object({
   targetPlayerId: z.string().uuid()
 });
 
-export function registerRoomRoutes(server: FastifyInstance, store: RoomStore, events: GameEventQueue, presenceClient: Redis) {
+const startRoundSchema = z.object({
+  hostToken: z.string().uuid(),
+  hostPlayerId: z.string().uuid(),
+  drawingPlayerId: z.string().uuid().optional()
+});
+
+const guessSchema = z.object({
+  token: z.string(),
+  guess: z.string().min(1)
+});
+
+export function registerRoomRoutes(
+  server: FastifyInstance & { io: SocketIOServer },
+  store: RoomStore,
+  events: GameEventQueue,
+  presenceClient: Redis,
+  strokeHistory: StrokeHistory,
+  gameState: GameStateManager
+) {
   server.post("/rooms", async (request, reply) => {
     const body = createRoomSchema.parse(request.body);
     const result = await store.createRoom(body.hostNickname);
+    await gameState.ensureLobby(result.roomCode);
+    await gameState.ensurePlayer(result.roomCode, result.hostPlayer.id);
+    await upsertPresence(presenceClient, result.roomCode, result.hostPlayer.id, result.hostPlayer.nickname, "http");
     const hostPlayerToken = createPlayerToken({
       roomCode: result.roomCode,
       playerId: result.hostPlayer.id,
@@ -71,6 +96,8 @@ export function registerRoomRoutes(server: FastifyInstance, store: RoomStore, ev
       const result = await store.joinRoom(code, body.nickname, body.playerId);
       const normalized = code.toUpperCase();
       const token = createPlayerToken({ roomCode: normalized, playerId: result.playerId, role: "player" });
+      await gameState.ensurePlayer(normalized, result.playerId);
+      await upsertPresence(presenceClient, normalized, result.playerId, body.nickname, "http");
 
       await events.publish({
         type: "room.join",
@@ -81,7 +108,16 @@ export function registerRoomRoutes(server: FastifyInstance, store: RoomStore, ev
         occurredAt: Date.now()
       });
 
-      return reply.send({ playerId: result.playerId, roomCode: normalized, playerToken: token });
+      const state = await gameState.getState(normalized, false);
+      const strokes = await strokeHistory.getRecent(normalized);
+
+      return reply.send({
+        playerId: result.playerId,
+        roomCode: normalized,
+        playerToken: token,
+        state,
+        strokes
+      });
     } catch (error) {
       if (error instanceof Error && error.message === "ROOM_NOT_FOUND") {
         return reply.code(404).send({ message: "Room not found" });
@@ -96,6 +132,7 @@ export function registerRoomRoutes(server: FastifyInstance, store: RoomStore, ev
     const normalized = code.toUpperCase();
 
     await store.leaveRoom(normalized, body.playerId);
+    await removePresence(presenceClient, normalized, body.playerId);
 
     await events.publish({
       type: "room.leave",
@@ -106,6 +143,76 @@ export function registerRoomRoutes(server: FastifyInstance, store: RoomStore, ev
     });
 
     return reply.send({ roomCode: normalized, playerId: body.playerId });
+  });
+
+  server.post("/rooms/:code/start", async (request, reply) => {
+    const { code } = request.params as { code: string };
+    const body = startRoundSchema.parse(request.body);
+    const normalized = code.toUpperCase();
+
+    const expectedHostToken = await store.getHostToken(normalized);
+    if (!expectedHostToken || expectedHostToken !== body.hostToken) {
+      return reply.code(403).send({ message: "Invalid host token" });
+    }
+
+    const drawingPlayerId = body.drawingPlayerId ?? body.hostPlayerId;
+    await strokeHistory.clear(normalized);
+    const state = await gameState.startRound(normalized, drawingPlayerId);
+    const publicState = await gameState.getState(normalized, false);
+    server.io.to(normalized).emit("game:state", publicState);
+
+    return reply.send(state);
+  });
+
+  server.get("/rooms/:code/state", async (request, reply) => {
+    const { code } = request.params as { code: string };
+    const normalized = code.toUpperCase();
+    const query = request.query as { token?: string; hostToken?: string };
+
+    let includePrompt = false;
+
+    if (query.hostToken) {
+      const expectedHostToken = await store.getHostToken(normalized);
+      if (expectedHostToken && expectedHostToken === query.hostToken) {
+        includePrompt = true;
+      }
+    } else if (query.token) {
+      try {
+        const claims = verifyPlayerToken(query.token);
+        includePrompt = claims.role === "host";
+      } catch (error) {
+        return reply.code(401).send({ message: "Invalid token" });
+      }
+    }
+
+    const state = await gameState.getState(normalized, includePrompt);
+    return reply.send(state);
+  });
+
+  server.post("/rooms/:code/guess", async (request, reply) => {
+    const { code } = request.params as { code: string };
+    const normalized = code.toUpperCase();
+    const body = guessSchema.parse(request.body);
+
+    let claims: { roomCode: string; playerId: string };
+    try {
+      claims = verifyPlayerToken(body.token);
+    } catch (error) {
+      return reply.code(401).send({ message: "Invalid token" });
+    }
+
+    if (claims.roomCode !== normalized) {
+      return reply.code(403).send({ message: "Token does not match room" });
+    }
+
+    await touchPresence(presenceClient, normalized, claims.playerId);
+    const result = await gameState.recordGuess(normalized, claims.playerId, body.guess);
+    if (result.correct) {
+      const publicState = await gameState.getState(normalized, false);
+      server.io.to(normalized).emit("game:state", publicState);
+    }
+
+    return reply.send({ correct: result.correct, state: result.state });
   });
 
   server.post("/rooms/:code/kick", async (request, reply) => {
@@ -119,6 +226,7 @@ export function registerRoomRoutes(server: FastifyInstance, store: RoomStore, ev
     }
 
     await store.leaveRoom(normalized, body.targetPlayerId);
+    await removePresence(presenceClient, normalized, body.targetPlayerId);
 
     await events.publish({
       type: "room.leave",
@@ -155,5 +263,12 @@ export function registerRoomRoutes(server: FastifyInstance, store: RoomStore, ev
     );
 
     return reply.send(records);
+  });
+
+  server.get("/rooms/:code/strokes", async (request, reply) => {
+    const { code } = request.params as { code: string };
+    const normalized = code.toUpperCase();
+    const strokes = await strokeHistory.getRecent(normalized);
+    return reply.send(strokes);
   });
 }
