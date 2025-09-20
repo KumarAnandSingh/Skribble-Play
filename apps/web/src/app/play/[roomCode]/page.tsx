@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "@/components/DrawingCanvas";
+import { InviteSheet } from "@/components/room/InviteSheet";
 import { PlayerRoster } from "@/components/room/PlayerRoster";
 import { useRealtimeRoom } from "@/hooks/useRealtimeRoom";
 import { useRoundTimer } from "@/hooks/useRoundTimer";
@@ -208,11 +209,20 @@ export default function PlayRoomPage({ params }: any) {
         <div className="rounded-3xl border border-white/10 bg-black/20 p-6 shadow-panel">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Canvas</h2>
-            {role === "host" && state?.phase !== "drawing" ? (
-              <Button variant="ghost" onClick={handleStartRound} disabled={startDisabled}>
-                {startButtonLabel}
-              </Button>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {role === "host" ? (
+                <InviteSheet roomCode={roomCode} hostToken={hostToken}>
+                  <Button type="button" variant="ghost">
+                    Share room
+                  </Button>
+                </InviteSheet>
+              ) : null}
+              {role === "host" && state?.phase !== "drawing" ? (
+                <Button variant="ghost" onClick={handleStartRound} disabled={startDisabled}>
+                  {startButtonLabel}
+                </Button>
+              ) : null}
+            </div>
           </div>
           {roundError && <p className="mt-2 text-sm text-rose-400">{roundError}</p>}
           <div className="mt-6">

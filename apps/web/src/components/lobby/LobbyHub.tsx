@@ -30,6 +30,36 @@ type CreateRoomValues = z.infer<typeof createRoomSchema>;
 
 type FieldErrors = Partial<Record<keyof CreateRoomValues, string>>;
 
+const mockFriendRooms: Array<PublicRoom & { lastPlayedAt: string }> = [
+  {
+    roomId: "friends-1",
+    name: "Friday Fam Jam",
+    mode: "Private",
+    players: 4,
+    maxPlayers: 10,
+    status: "open",
+    language: "English",
+    roundLength: 120,
+    tags: ["family", "kids"],
+    friendsOnline: 2,
+    invitesPending: 1,
+    lastPlayedAt: "Yesterday"
+  },
+  {
+    roomId: "friends-2",
+    name: "Office Draw Off",
+    mode: "Quick Play",
+    players: 6,
+    maxPlayers: 8,
+    status: "in-progress",
+    language: "English",
+    roundLength: 90,
+    tags: ["challenge"],
+    friendsOnline: 3,
+    lastPlayedAt: "2 days ago"
+  }
+];
+
 export function LobbyHub() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
@@ -379,6 +409,29 @@ function FriendsTab() {
         <h4 className="text-sm font-semibold uppercase tracking-wide text-white/60">Pending invites</h4>
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/70">
           <p>Invites will appear here once friends send them. Accept to jump straight into their lobby.</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+          <h5 className="text-sm font-semibold text-white">Recently played rooms</h5>
+          <ul className="mt-3 space-y-3">
+            {mockFriendRooms.map((room) => (
+              <li key={room.roomId} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
+                <div>
+                  <p className="text-sm font-semibold text-white">{room.name}</p>
+                  <p className="text-xs text-white/60">
+                    {room.mode} • {room.players}/{room.maxPlayers} players • Last played {room.lastPlayedAt}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="ghost">
+                    Join
+                  </Button>
+                  <Button size="sm" variant="ghost">
+                    Invite again
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>
