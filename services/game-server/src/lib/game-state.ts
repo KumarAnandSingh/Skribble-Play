@@ -17,6 +17,12 @@ export interface GameState {
   scoreboard: Scoreboard;
   correctGuessers: string[];
   readyPlayers: string[];
+  filters: GameFilters;
+}
+
+export interface GameFilters {
+  kidsMode: boolean;
+  profanityLevel: "low" | "medium" | "high";
 }
 
 export interface GameLoopConfig {
@@ -38,7 +44,11 @@ const DEFAULT_STATE: GameState = {
   roundEndsAt: null,
   scoreboard: {},
   correctGuessers: [],
-  readyPlayers: []
+  readyPlayers: [],
+  filters: {
+    kidsMode: false,
+    profanityLevel: "medium"
+  }
 };
 
 function maskPrompt(prompt: string) {
@@ -110,7 +120,8 @@ export class GameStateManager {
   }
 
   async startRound(roomCode: string, drawingPlayerId: string): Promise<GameState> {
-    const scoreboard = await this.readScoreboard(roomCode);
+    const baseState = await this.getState(roomCode, true);
+    const scoreboard = baseState.scoreboard;
     const prompt = this.prompts[Math.floor(Math.random() * this.prompts.length)];
     const state: GameState = {
       roomCode,
@@ -122,7 +133,8 @@ export class GameStateManager {
       roundEndsAt: Date.now() + this.drawDuration,
       scoreboard,
       correctGuessers: [],
-      readyPlayers: []
+      readyPlayers: [],
+      filters: baseState.filters ?? DEFAULT_STATE.filters
     };
 
     await this.redis.set(this.stateKey(roomCode), JSON.stringify(state));
@@ -209,6 +221,20 @@ export class GameStateManager {
     const updated: GameState = {
       ...current,
       readyPlayers: Array.from(readyPlayers)
+    };
+    await this.redis.set(this.stateKey(roomCode), JSON.stringify(updated));
+    return updated;
+  }
+
+  async updateFilters(roomCode: string, filters: Partial<GameFilters>): Promise<GameState> {
+    const current = await this.getState(roomCode, true);
+    const merged: GameFilters = {
+      kidsMode: filters.kidsMode ?? current.filters.kidsMode,
+      profanityLevel: filters.profanityLevel ?? current.filters.profanityLevel
+    };
+    const updated: GameState = {
+      ...current,
+      filters: merged
     };
     await this.redis.set(this.stateKey(roomCode), JSON.stringify(updated));
     return updated;

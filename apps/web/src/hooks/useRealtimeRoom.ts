@@ -33,6 +33,7 @@ export interface UseRealtimeRoomReturn {
   submitGuess: (guess: string) => Promise<{ correct: boolean }>;
   refreshState: () => Promise<void>;
   toggleReady: (ready: boolean) => Promise<void>;
+  updateFilters: (filters: Partial<GameState["filters"]>) => Promise<void>;
 }
 
 function normalizePlayers(list: PresenceMember[]) {
@@ -312,6 +313,28 @@ export function useRealtimeRoom({
     [roomCodeUpper, token]
   );
 
+  const updateFilters = useCallback(
+    async (filters: Partial<GameState["filters"]>) => {
+      try {
+        const response = await fetch(`${env.gameServerUrl}/rooms/${roomCodeUpper}/settings`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, ...filters })
+        });
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as { message?: string } | null;
+          throw new Error(body?.message ?? `Settings update failed (${response.status})`);
+        }
+        const body = (await response.json()) as { state: GameState };
+        setState(body.state);
+      } catch (err) {
+        console.error("failed to update filters", err);
+        throw err;
+      }
+    },
+    [roomCodeUpper, token]
+  );
+
   return {
     status,
     error,
@@ -322,6 +345,7 @@ export function useRealtimeRoom({
     startRound,
     submitGuess,
     refreshState: fetchState,
-    toggleReady
+    toggleReady,
+    updateFilters
   };
 }

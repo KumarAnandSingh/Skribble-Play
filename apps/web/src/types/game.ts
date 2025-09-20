@@ -11,4 +11,10 @@ export interface GameState {
   scoreboard: Record<string, number>;
   correctGuessers: string[];
   readyPlayers: string[];
+  filters: GameFilters;
+}
+
+export interface GameFilters {
+  kidsMode: boolean;
+  profanityLevel: "low" | "medium" | "high";
 }

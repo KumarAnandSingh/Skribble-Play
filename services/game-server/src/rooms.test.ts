@@ -79,6 +79,17 @@ describe("room routes", () => {
     const readyBody = readyResponse.json() as { state: GameState };
     expect(readyBody.state.readyPlayers).toContain(joinBody.playerId);
 
+    const settingsResponse = await server.inject({
+      method: "POST",
+      url: `/rooms/${createBody.roomCode}/settings`,
+      payload: { token: createBody.hostPlayer.token, kidsMode: true, profanityLevel: "low" }
+    });
+
+    expect(settingsResponse.statusCode).toBe(200);
+    const settingsBody = settingsResponse.json() as { state: GameState };
+    expect(settingsBody.state.filters.kidsMode).toBe(true);
+    expect(settingsBody.state.filters.profanityLevel).toBe("low");
+
     const getResponse = await server.inject({
       method: "GET",
       url: `/rooms/${createBody.roomCode}`

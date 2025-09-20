@@ -26,7 +26,7 @@ export default function PlayRoomPage({ params }: any) {
   const [kickingId, setKickingId] = useState<string | null>(null);
   const [selectedDrawerId, setSelectedDrawerId] = useState<string | null>(null);
 
-  const { status, error, players, state, strokes, sendStroke, startRound, submitGuess, toggleReady } = useRealtimeRoom({
+  const { status, error, players, state, strokes, sendStroke, startRound, submitGuess, toggleReady, updateFilters } = useRealtimeRoom({
     roomCode,
     playerId,
     token,
@@ -153,6 +153,8 @@ export default function PlayRoomPage({ params }: any) {
   const isPlayerReady = state?.readyPlayers.includes(playerId) ?? false;
   const startDisabled =
     status !== "connected" || totalPlayers === 0 || readyCount === 0 || readyCount !== totalPlayers;
+  const kidsModeEnabled = state?.filters.kidsMode ?? false;
+  const profanityLevel = state?.filters.profanityLevel ?? "medium";
 
   useEffect(() => {
     if (role !== "host") return;
@@ -237,7 +239,7 @@ export default function PlayRoomPage({ params }: any) {
         </div>
 
         <aside className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-black/20 p-6 shadow-panel">
-         <section>
+          <section>
             <h2 className="text-lg font-semibold">Session Details</h2>
             <dl className="mt-3 space-y-2 text-sm text-white/80">
               <div>
@@ -253,6 +255,52 @@ export default function PlayRoomPage({ params }: any) {
                 <dd className="break-all text-white/70">{playerId || "unknown"}</dd>
               </div>
             </dl>
+          </section>
+
+          <section className="rounded-2xl bg-white/5 p-4">
+            <h3 className="text-sm font-semibold text-white">Content filters</h3>
+            <p className="text-xs text-white/60">Keep play friendly with curated prompts and language settings.</p>
+            <div className="mt-3 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/80">Kids Mode</span>
+                {role === "host" ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={kidsModeEnabled ? "primary" : "ghost"}
+                    onClick={() => {
+                      void updateFilters({ kidsMode: !kidsModeEnabled });
+                    }}
+                  >
+                    {kidsModeEnabled ? "On" : "Off"}
+                  </Button>
+                ) : (
+                  <span className="text-xs text-white/50">{kidsModeEnabled ? "Enabled" : "Disabled"}</span>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/80">Profanity filter</span>
+                {role === "host" ? (
+                  <div className="flex gap-2">
+                    {(["low", "medium", "high"] as const).map((level) => (
+                      <Button
+                        key={level}
+                        type="button"
+                        size="sm"
+                        variant={profanityLevel === level ? "primary" : "ghost"}
+                        onClick={() => {
+                          void updateFilters({ profanityLevel: level });
+                        }}
+                      >
+                        {level}
+                      </Button>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-xs text-white/50">{profanityLevel}</span>
+                )}
+              </div>
+            </div>
           </section>
 
           <section>

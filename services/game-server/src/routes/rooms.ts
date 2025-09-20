@@ -43,6 +43,12 @@ const readySchema = z.object({
   ready: z.boolean()
 });
 
+const updateFiltersSchema = z.object({
+  token: z.string(),
+  kidsMode: z.boolean().optional(),
+  profanityLevel: z.enum(["low", "medium", "high"]).optional()
+});
+
 export function registerRoomRoutes(
   server: FastifyInstance & { io: SocketIOServer },
   store: RoomStore,
@@ -242,6 +248,36 @@ export function registerRoomRoutes(
 
     const scopedState = await gameState.getState(normalized, claims.role === "host");
     return reply.send({ state: scopedState });
+  });
+
+  server.post("/rooms/:code/settings", async (request, reply) => {
+    const { code } = request.params as { code: string };
+    const normalized = code.toUpperCase();
+    const body = updateFiltersSchema.parse(request.body);
+
+    let claims: { roomCode: string; playerId: string; role: string };
+    try {
+      claims = verifyPlayerToken(body.token);
+    } catch (error) {
+      return reply.code(401).send({ message: "Invalid token" });
+    }
+
+    if (claims.roomCode !== normalized) {
+      return reply.code(403).send({ message: "Token does not match room" });
+    }
+
+    if (claims.role !== "host") {
+      return reply.code(403).send({ message: "Only host can update settings" });
+    }
+
+    const updated = await gameState.updateFilters(normalized, {
+      kidsMode: body.kidsMode,
+      profanityLevel: body.profanityLevel
+    });
+    const publicState = await gameState.getState(normalized, false);
+    server.io.to(normalized).emit("game:state", publicState);
+
+    return reply.send({ state: updated });
   });
 
   server.post("/rooms/:code/kick", async (request, reply) => {
