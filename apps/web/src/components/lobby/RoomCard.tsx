@@ -12,6 +12,9 @@ export interface RoomCardProps {
   status: "open" | "in-progress" | "locked";
   language?: string;
   roundLength?: number;
+  tags?: string[];
+  friendsOnline?: number;
+  invitesPending?: number;
   children?: ReactNode;
   onJoin?: () => void;
   onSpectate?: () => void;
@@ -33,6 +36,9 @@ export function RoomCard({
   roundLength,
   onJoin,
   onSpectate,
+  tags,
+  friendsOnline,
+  invitesPending,
   children
 }: RoomCardProps) {
   const statusMeta = statusCopy[status];
@@ -56,6 +62,21 @@ export function RoomCard({
           <p>
             Players: <span className="font-semibold text-white">{players}</span> / {maxPlayers}
           </p>
+          {friendsOnline ? (
+            <p className="text-xs text-emerald-300">{friendsOnline} friends online</p>
+          ) : null}
+          {invitesPending ? (
+            <p className="text-xs text-amber-300">{invitesPending} invites pending</p>
+          ) : null}
+          {tags && tags.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-white/60">
+              {tags.map((tag) => (
+                <Badge key={tag} variant="outline">
+                  #{tag}
+                </Badge>
+              ))}
+            </div>
+          ) : null}
           {children}
         </div>
         <div className="flex flex-wrap items-center gap-3">

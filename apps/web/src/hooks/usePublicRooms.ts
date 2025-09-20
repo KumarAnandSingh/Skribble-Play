@@ -24,7 +24,9 @@ const fallbackRooms: PublicRoom[] = [
     maxPlayers: 8,
     status: "open",
     language: "English",
-    roundLength: 90
+    roundLength: 90,
+    tags: ["friendly", "voice"],
+    friendsOnline: 2
   },
   {
     roomId: "speedrun",
@@ -34,7 +36,9 @@ const fallbackRooms: PublicRoom[] = [
     maxPlayers: 8,
     status: "in-progress",
     language: "English",
-    roundLength: 60
+    roundLength: 60,
+    tags: ["challenge"],
+    invitesPending: 1
   },
   {
     roomId: "gallery",
@@ -44,7 +48,8 @@ const fallbackRooms: PublicRoom[] = [
     maxPlayers: 10,
     status: "locked",
     language: "Spanish",
-    roundLength: 120
+    roundLength: 120,
+    tags: ["kids", "family"]
   }
 ];
 

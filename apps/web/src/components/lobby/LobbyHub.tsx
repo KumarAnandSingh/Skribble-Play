@@ -13,7 +13,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RoomCard } from "./RoomCard";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { usePublicRooms } from "@/hooks/usePublicRooms";
+import type { PublicRoom } from "@/hooks/usePublicRooms";
 import { env } from "@/lib/env";
+
+type PermissionStatus = "idle" | "allowed" | "denied" | "unsupported" | "error";
 
 const createRoomSchema = z.object({
   roomName: z.string().min(3, "Room name must be at least 3 characters"),
@@ -44,6 +47,9 @@ export function LobbyHub() {
       return matchesKeyword && matchesMode && matchesLanguage;
     });
   }, [data, searchTerm, modeFilter, languageFilter]);
+
+  const [joiningRoom, setJoiningRoom] = useState<PublicRoom | null>(null);
+  const [autoMicStatus, setAutoMicStatus] = useState<PermissionStatus>("idle");
 
   return (
     <section className="w-full max-w-6xl rounded-4xl border border-white/10 bg-black/30 p-8 shadow-panel">
@@ -122,6 +128,13 @@ export function LobbyHub() {
                       status={room.status}
                       language={room.language}
                       roundLength={room.roundLength}
+                      tags={room.tags}
+                      friendsOnline={room.friendsOnline}
+                      invitesPending={room.invitesPending}
+                      onJoin={() => {
+                        setJoiningRoom(room);
+                        setAutoMicStatus("idle");
+                      }}
                     />
                   ))}
               {!isLoading && filteredRooms.length === 0 ? (
@@ -148,6 +161,19 @@ export function LobbyHub() {
           />
         </TabsContent>
       </Tabs>
+
+      <JoinRoomDialog
+        room={joiningRoom}
+        status={autoMicStatus}
+        onStatusChange={setAutoMicStatus}
+        onClose={() => {
+          setJoiningRoom(null);
+        }}
+        onJoinSuccess={(path) => {
+          setJoiningRoom(null);
+          router.push(path as Route);
+        }}
+      />
     </section>
   );
 }
@@ -356,5 +382,112 @@ function FriendsTab() {
         </div>
       </div>
     </div>
+  );
+}
+
+interface JoinRoomDialogProps {
+  room: PublicRoom | null;
+  status: PermissionStatus;
+  onStatusChange: (status: PermissionStatus) => void;
+  onClose: () => void;
+  onJoinSuccess: (path: string) => void;
+}
+
+function JoinRoomDialog({ room, status, onStatusChange, onClose, onJoinSuccess }: JoinRoomDialogProps) {
+  const [nickname, setNickname] = useState("Guest Player");
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
+
+  const requestMedia = async () => {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      onStatusChange("unsupported");
+      return;
+    }
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      onStatusChange("allowed");
+    } catch (error) {
+      console.error("media permission error", error);
+      onStatusChange((error as DOMException).name === "NotAllowedError" ? "denied" : "error");
+    }
+  };
+
+  const handleJoin = async () => {
+    if (!room) return;
+    setJoinError(null);
+    setIsJoining(true);
+    try {
+      const response = await fetch(`${env.gameServerUrl}/rooms/${room.roomId}/join`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname })
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(body?.message ?? `Join failed (${response.status})`);
+      }
+      const body = (await response.json()) as {
+        playerId: string;
+        playerToken: string;
+        roomCode: string;
+        state: unknown;
+        strokes: unknown[];
+      };
+      const path = `/play/${body.roomCode}?playerId=${body.playerId}&token=${encodeURIComponent(
+        body.playerToken
+      )}&role=player&nickname=${encodeURIComponent(nickname)}`;
+      onJoinSuccess(path);
+    } catch (error) {
+      setJoinError((error as Error).message);
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  if (!room) return null;
+
+  return (
+    <Dialog open onOpenChange={(open) => {!open && onClose();}}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Join {room.name}</DialogTitle>
+          <DialogDescription>
+            Enable mic & camera so your squad can hear the hype. You can change permissions anytime from the toolbar.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="mt-4 space-y-4 text-sm text-white/80">
+          <div>
+            <Label htmlFor="join-nickname">Your nickname</Label>
+            <Input
+              id="join-nickname"
+              className="mt-1"
+              value={nickname}
+              onChange={(event) => setNickname(event.target.value)}
+            />
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <p className="text-xs uppercase tracking-wide text-white/50">Voice & video</p>
+            <p className="mt-1 text-white/70">Automatically connect your mic (and video if available) when the round starts.</p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Button type="button" variant="primary" onClick={requestMedia}>
+                Allow mic &amp; camera
+              </Button>
+              <span className="text-xs text-white/60">
+                Status: {status === "idle" ? "Not requested" : status === "allowed" ? "Ready" : status === "denied" ? "Denied" : status === "unsupported" ? "Unsupported" : "Error"}
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" onClick={handleJoin} isLoading={isJoining} disabled={isJoining}>
+              Join room
+            </Button>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
+          {joinError ? <p className="text-sm text-rose-300">{joinError}</p> : null}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
