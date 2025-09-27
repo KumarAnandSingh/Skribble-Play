@@ -44,6 +44,12 @@ analytics-spec/  # Tracking plans & metrics definitions
    ```
 4. Tests will run locally via Vitest, Jest, and Playwright once suites are seeded.
 
+### Environment
+
+1. Copy `.env.example` to `.env` at the repo root.
+2. Update `POSTGRES_URL`, `REDIS_URL`, and `NEXT_PUBLIC_GAME_SERVER_URL` if your local ports differ.
+3. Set `RUN_SOCKET_TESTS=true` to exercise Socket.IO integration tests on machines that allow binding to ephemeral ports.
+
 ## Testing Locally
 - **Unit & integration:** `npm run test --workspace <package>` (Vitest/Jest).
 - **E2E:** Playwright specs will live under `apps/web/tests` and run with `npm run test:e2e`.

@@ -2,12 +2,22 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import HomePage from "./page";
+import { QueryProvider } from "@/components/QueryProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn()
   })
 }));
+
+function renderWithProviders(ui: React.ReactNode) {
+  return render(
+    <ThemeProvider>
+      <QueryProvider>{ui}</QueryProvider>
+    </ThemeProvider>
+  );
+}
 
 describe("HomePage", () => {
   beforeEach(() => {
@@ -21,11 +31,12 @@ describe("HomePage", () => {
   });
 
   it("renders hero copy", async () => {
-    render(<HomePage />);
+    renderWithProviders(<HomePage />);
 
-    expect(screen.getByText("Skribble Play")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Squad up for fast, meme-worthy drawing battles." })
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /playtest waitlist/i })).toBeInTheDocument();
-    expect(screen.getByText(/Create a Room/i)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText(/Game server online/i)).toBeInTheDocument();

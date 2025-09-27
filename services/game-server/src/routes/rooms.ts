@@ -6,7 +6,7 @@ import type { GameEventQueue } from "../lib/event-queue";
 import { createPlayerToken, verifyPlayerToken } from "../lib/auth-tokens";
 import type { Redis } from "ioredis";
 import type { StrokeHistory } from "../lib/stroke-history";
-import { GameStateManager } from "../lib/game-state";
+import type { GameStateManager } from "../lib/game-state";
 import { removePresence, touchPresence, upsertPresence } from "../lib/presence";
 
 const createRoomSchema = z.object({
@@ -129,7 +129,7 @@ export function registerRoomRoutes(
         state,
         strokes
       });
-    } catch (error) {
+    } catch (_error) {
       if (error instanceof Error && error.message === "ROOM_NOT_FOUND") {
         return reply.code(404).send({ message: "Room not found" });
       }
@@ -191,7 +191,7 @@ export function registerRoomRoutes(
       try {
         const claims = verifyPlayerToken(query.token);
         includePrompt = claims.role === "host";
-      } catch (error) {
+      } catch (_error) {
         return reply.code(401).send({ message: "Invalid token" });
       }
     }
@@ -208,7 +208,7 @@ export function registerRoomRoutes(
     let claims: { roomCode: string; playerId: string };
     try {
       claims = verifyPlayerToken(body.token);
-    } catch (error) {
+    } catch (_error) {
       return reply.code(401).send({ message: "Invalid token" });
     }
 
@@ -234,7 +234,7 @@ export function registerRoomRoutes(
     let claims: { roomCode: string; playerId: string; role: string };
     try {
       claims = verifyPlayerToken(body.token);
-    } catch (error) {
+    } catch (_error) {
       return reply.code(401).send({ message: "Invalid token" });
     }
 
@@ -242,7 +242,7 @@ export function registerRoomRoutes(
       return reply.code(403).send({ message: "Token does not match room" });
     }
 
-    const updated = await gameState.setReady(normalized, claims.playerId, body.ready);
+    await gameState.setReady(normalized, claims.playerId, body.ready);
     const publicState = await gameState.getState(normalized, false);
     server.io.to(normalized).emit("game:state", publicState);
 
@@ -258,7 +258,7 @@ export function registerRoomRoutes(
     let claims: { roomCode: string; playerId: string; role: string };
     try {
       claims = verifyPlayerToken(body.token);
-    } catch (error) {
+    } catch (_error) {
       return reply.code(401).send({ message: "Invalid token" });
     }
 

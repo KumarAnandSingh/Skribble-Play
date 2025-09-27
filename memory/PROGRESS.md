@@ -62,3 +62,13 @@
 - Built `/play/[roomCode]` experience with socket-authenticated joins, live player roster, and kick controls. Added collaborative canvas using `@skribble-play/drawing-engine` with stroke broadcasting over Socket.IO.
 - Added JWT issuance for players/hosts in REST + socket flows; HTTP kick endpoint now requires host token and emits presence updates.
 - Implemented Redis-backed presence API (`GET /rooms/:code/presence`) fed by BullMQ worker, hooked into the web lobby and play UI.
+
+## Session: Tooling hardening & readiness checks
+- Replaced interactive `next lint` workflow with shared TypeScript ESLint config and aligned workspace scripts.
+- Patched Vitest suites to wrap Next.js providers, gated socket integration tests when sockets are unavailable, and allowed no-test workspaces to exit cleanly.
+- Removed stray `next` dependencies from backend/packages and introduced a repo-wide `.env.example` plus README guidance for local setup.
+
+## Follow-ups
+1. Re-enable Socket.IO integration test coverage on environments with open socket permissions.
+2. Flesh out env var docs per workspace (web, server, worker) once secrets management is chosen.
+

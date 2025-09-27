@@ -146,7 +146,6 @@ export class GameStateManager {
   }
 
   async endRound(roomCode: string): Promise<GameState> {
-    const scoreboard = await this.readScoreboard(roomCode);
     const current = await this.getState(roomCode, true);
     const state: GameState = {
       ...current,

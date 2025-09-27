@@ -65,7 +65,7 @@ export class RoomStore {
   private async generateUniqueRoomCode(): Promise<string> {
     while (true) {
       const candidate = Math.random().toString(36).slice(2, 8).toUpperCase();
-      const existing = await this.pool.query(`SELECT 1 FROM rooms WHERE room_code = $1`, [candidate]);
+      const existing = await this.pool.query("SELECT 1 FROM rooms WHERE room_code = $1", [candidate]);
       if (existing.rowCount === 0) {
         return candidate;
       }
@@ -79,7 +79,7 @@ export class RoomStore {
 
     await this.pool.query("BEGIN");
     try {
-      await this.pool.query(`INSERT INTO rooms (room_code, host_token) VALUES ($1, $2)`, [roomCode, hostToken]);
+      await this.pool.query("INSERT INTO rooms (room_code, host_token) VALUES ($1, $2)", [roomCode, hostToken]);
       const playerResult = await this.pool.query<{ joined_at: Date }>(
         `INSERT INTO room_players (id, room_code, nickname, is_host)
          VALUES ($1, $2, $3, TRUE)
@@ -106,7 +106,7 @@ export class RoomStore {
   async getRoom(roomCode: string): Promise<RoomRecord | null> {
     const normalized = roomCode.toUpperCase();
     const roomResult = await this.pool.query<{ room_code: string; created_at: Date }>(
-      `SELECT room_code, created_at FROM rooms WHERE room_code = $1`,
+      "SELECT room_code, created_at FROM rooms WHERE room_code = $1",
       [normalized]
     );
 
@@ -136,7 +136,7 @@ export class RoomStore {
   async getPlayer(roomCode: string, playerId: string): Promise<PlayerRecord | null> {
     const normalized = roomCode.toUpperCase();
     const result = await this.pool.query<{ id: string; nickname: string; joined_at: Date }>(
-      `SELECT id, nickname, joined_at FROM room_players WHERE room_code = $1 AND id = $2`,
+      "SELECT id, nickname, joined_at FROM room_players WHERE room_code = $1 AND id = $2",
       [normalized, playerId]
     );
 
@@ -155,7 +155,7 @@ export class RoomStore {
   async getHostToken(roomCode: string): Promise<string | null> {
     const normalized = roomCode.toUpperCase();
     const result = await this.pool.query<{ host_token: string }>(
-      `SELECT host_token FROM rooms WHERE room_code = $1`,
+      "SELECT host_token FROM rooms WHERE room_code = $1",
       [normalized]
     );
     return result.rowCount > 0 ? result.rows[0].host_token : null;
@@ -167,7 +167,7 @@ export class RoomStore {
 
     await this.pool.query("BEGIN");
     try {
-      const roomExists = await this.pool.query(`SELECT 1 FROM rooms WHERE room_code = $1`, [normalized]);
+      const roomExists = await this.pool.query("SELECT 1 FROM rooms WHERE room_code = $1", [normalized]);
       if (roomExists.rowCount === 0) {
         throw new Error("ROOM_NOT_FOUND");
       }
@@ -190,7 +190,7 @@ export class RoomStore {
 
   async leaveRoom(roomCode: string, playerId: string) {
     const normalized = roomCode.toUpperCase();
-    await this.pool.query(`DELETE FROM room_players WHERE room_code = $1 AND id = $2`, [normalized, playerId]);
+    await this.pool.query("DELETE FROM room_players WHERE room_code = $1 AND id = $2", [normalized, playerId]);
   }
 
   async clearAll() {

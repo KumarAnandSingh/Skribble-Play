@@ -10,12 +10,15 @@
     "react-dom": ">=18.0.0"
   },
   "devDependencies": {
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "eslint": "8.57.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0"
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "lint": "eslint src --ext .ts,.tsx",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --project tsconfig.json --noEmit"
   }
 }

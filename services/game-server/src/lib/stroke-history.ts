@@ -32,7 +32,7 @@ export class StrokeHistory {
       .map((entry) => {
         try {
           return JSON.parse(entry) as Stroke;
-        } catch (error) {
+        } catch (_error) {
           return null;
         }
       })
